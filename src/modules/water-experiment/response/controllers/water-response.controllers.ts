@@ -1,7 +1,7 @@
 import { inject, injectable } from "tsyringe";
 import { Request, Response } from "express";
 import { WaterResponseServiceTypes } from "../types/water-response.services.types";
-import { WaterResponseTypes } from "../types/water-response.schemas.types";
+import { WaterResponseTypes, WaterAnswerTypes } from "../types/water-response.schemas.types";
 import { asyncHandler } from "../../../../shared/asyncHandler";
 
 @injectable()
@@ -14,10 +14,8 @@ export class WaterResponseController {
   createWaterResponse = asyncHandler(async (req: Request, res: Response) => {
     const { studentName, pin, answerOne, answerTwo } = req.body;
 
-    const getWeight = (ans: any) => {
-      if (!ans) return 0;
-      if (typeof ans === "object" && "weight" in ans) return Number(ans.weight) || 0;
-      return 0;
+    const getWeight = (ans: WaterAnswerTypes | undefined) => {
+      return Number(ans?.weight) || 0;
     };
 
     const score = getWeight(answerOne) + getWeight(answerTwo);
@@ -39,10 +37,8 @@ export class WaterResponseController {
 
     const waterResponse = await this.waterResponseService.getWaterResponseById(id);
 
-    const getWeight = (ans: any) => {
-      if (!ans) return 0;
-      if (typeof ans === "object" && "weight" in ans) return Number(ans.weight) || 0;
-      return 0;
+    const getWeight = (ans: WaterAnswerTypes | undefined) => {
+      return Number(ans?.weight) || 0;
     };
 
     const score = getWeight(answerOne) + getWeight(answerTwo) || (waterResponse ? waterResponse.score : 0);

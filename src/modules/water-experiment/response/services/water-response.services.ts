@@ -4,8 +4,6 @@ import { WaterResponseRepositoryTypes } from "../types/water-response.repositori
 import { WaterResponseTypes } from "../types/water-response.schemas.types";
 import ServiceError, { ServiceErrorType } from "../../../../shared/errors/ServiceError";
 import { ErrorCode } from "../../../../shared/errors/errorCodes";
-import { WaterOptions } from "../../options/schemas/water-options.schemas";
-import { Types } from "mongoose";
 
 @injectable()
 export class WaterResponseService implements WaterResponseServiceTypes {
@@ -18,20 +16,8 @@ export class WaterResponseService implements WaterResponseServiceTypes {
     if (!waterResponse.pin) {
       throw new ServiceError("PIN do experimento é obrigatório", ServiceErrorType.BadRequest, undefined, ErrorCode.RESPONSE_PIN_REQUIRED);
     }
-    const resolveWeight = async (ans: any) => {
-      if (!ans) return 0;
-      if (typeof ans === "object" && "weight" in ans) return Number(ans.weight) || 0;
-      if (Types.ObjectId.isValid(ans)) {
-        const doc = await WaterOptions.findById(ans).lean();
-        if (!doc) throw new ServiceError("Opção não encontrada", ServiceErrorType.NotFound, undefined, ErrorCode.OPTION_NOT_FOUND);
-        return Number((doc as any).weight) || 0;
-      }
-      return 0;
-    };
 
-    const score =
-      (await resolveWeight(waterResponse.answerOne)) +
-      (await resolveWeight(waterResponse.answerTwo));
+    const score = Number(waterResponse.answerOne?.weight || 0) + Number(waterResponse.answerTwo?.weight || 0);
     const toSave: WaterResponseTypes = { ...waterResponse, score };
 
     return this.waterResponseRepository.create(toSave);

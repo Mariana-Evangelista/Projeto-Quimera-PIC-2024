@@ -2,11 +2,17 @@ import { model, Schema } from "mongoose";
 import { WaterResponseTypes } from "../types/water-response.schemas.types";
 import { WaterExperiment } from "../../experiment/schemas/water-experiment.schemas";
 
+const WaterAnswerSchema = new Schema({
+  value: { type: String, required: true },
+  weight: { type: Number, required: true },
+  answerNumber: { type: Number, required: true },
+}, { _id: false });
+
 const WaterResponseSchema = new Schema<WaterResponseTypes>({
   studentName: { type: String, required: true },
   pin: { type: String, required: true },
-  answerOne: { type: Schema.Types.ObjectId, ref: "WaterOptions" },
-  answerTwo: { type: Schema.Types.ObjectId, ref: "WaterOptions" },
+  answerOne: { type: WaterAnswerSchema, required: true },
+  answerTwo: { type: WaterAnswerSchema, required: true },
   score: { type: Number, required: true },
 });
 

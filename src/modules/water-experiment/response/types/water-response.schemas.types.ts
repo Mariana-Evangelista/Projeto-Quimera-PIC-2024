@@ -1,10 +1,13 @@
-import { WaterOptionsTypes } from "../../options/types/water-options.schemas.types";
-import { Types } from "mongoose";
+export interface WaterAnswerTypes {
+  value: string;
+  weight: number;
+  answerNumber: number;
+}
 
 export interface WaterResponseTypes {
   studentName: string;
   pin: string;
-  answerOne: WaterOptionsTypes | Types.ObjectId | string;
-  answerTwo: WaterOptionsTypes | Types.ObjectId | string;
+  answerOne: WaterAnswerTypes;
+  answerTwo: WaterAnswerTypes;
   score: number;
 }

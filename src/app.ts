@@ -9,7 +9,6 @@ import { config } from "dotenv";
 import { TeacherRoutes } from "./modules/teacher/teacher.routes";
 import { WaterExperimentRoutes } from "./modules/water-experiment/experiment/water-experiment.routes";
 import { WaterResponseRoutes } from "./modules/water-experiment/response/water-response.routes";
-import { WaterOptionsRoutes } from "./modules/water-experiment/options/water-options.routes";
 import errorHandler from "./middlewares/errorHandler";
 
 config();
@@ -28,7 +27,6 @@ app.use("/teacher", TeacherRoutes());
 app.use("/auth", AuthRoutes());
 
 app.use("/water-experiment", WaterExperimentRoutes());
-app.use("/water-option", WaterOptionsRoutes());
 app.use("/water-response", WaterResponseRoutes());
 
 // error handler
