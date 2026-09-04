@@ -1,7 +1,6 @@
 export interface WaterAnswerTypes {
   value: string;
   weight: number;
-  answerNumber: number;
 }
 
 export interface WaterResponseTypes {

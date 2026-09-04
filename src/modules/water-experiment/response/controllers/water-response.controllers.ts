@@ -14,13 +14,7 @@ export class WaterResponseController {
   createWaterResponse = asyncHandler(async (req: Request, res: Response) => {
     const { studentName, pin, answerOne, answerTwo } = req.body;
 
-    const getWeight = (ans: WaterAnswerTypes | undefined) => {
-      return Number(ans?.weight) || 0;
-    };
-
-    const score = getWeight(answerOne) + getWeight(answerTwo);
-
-    const waterResponse: WaterResponseTypes = { studentName, pin, answerOne, answerTwo, score };
+    const waterResponse: WaterResponseTypes = { studentName, pin, answerOne, answerTwo, score: 0 };
     const newWaterResponse = await this.waterResponseService.createWaterResponse(waterResponse);
     res.status(201).json(newWaterResponse);
   });
@@ -37,18 +31,12 @@ export class WaterResponseController {
 
     const waterResponse = await this.waterResponseService.getWaterResponseById(id);
 
-    const getWeight = (ans: WaterAnswerTypes | undefined) => {
-      return Number(ans?.weight) || 0;
-    };
-
-    const score = getWeight(answerOne) + getWeight(answerTwo) || (waterResponse ? waterResponse.score : 0);
-
     const updatedData = {
       studentName: (studentName as string) || (waterResponse ? waterResponse.studentName : ""),
       pin: waterResponse ? waterResponse.pin : "",
       answerOne: answerOne || (waterResponse ? waterResponse.answerOne : null),
       answerTwo: answerTwo || (waterResponse ? waterResponse.answerTwo : null),
-      score,
+      score: 0,
     } as any;
 
     const updatedWaterResponse = await this.waterResponseService.updateWaterResponse(id, updatedData);

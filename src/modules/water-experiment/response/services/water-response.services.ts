@@ -29,7 +29,9 @@ export class WaterResponseService implements WaterResponseServiceTypes {
     return this.waterResponseRepository.findById(id);
   }
   async updateWaterResponse(id: string, waterResponse: WaterResponseTypes) {
-    return this.waterResponseRepository.update(id, waterResponse);
+    const score = Number(waterResponse.answerOne?.weight || 0) + Number(waterResponse.answerTwo?.weight || 0);
+    const toSave: WaterResponseTypes = { ...waterResponse, score };
+    return this.waterResponseRepository.update(id, toSave);
   }
   async deleteWaterResponse(id: string) {
     return this.waterResponseRepository.delete(id);
