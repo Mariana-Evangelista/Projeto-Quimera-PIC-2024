@@ -2,7 +2,6 @@ import "reflect-metadata";
 import "./containers";
 
 import express from "express";
-import swaggerUi from "swagger-ui-express";
 import cors from "cors";
 import connectMongoDB from "./database/mongoDb";
 
@@ -14,7 +13,6 @@ import { BodyWaterLossResponseRoutes } from "./modules/body-water-loss-response/
 import { config } from "dotenv";
 
 import errorHandler from "./middlewares/errorHandler";
-import { swaggerSpec } from "./config/swagger";
 
 config();
 
@@ -30,7 +28,7 @@ app.use(express.json());
 connectMongoDB();
 
 //rotas
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 app.use("/teacher", TeacherRoutes());
 app.use("/auth", AuthRoutes());
 
