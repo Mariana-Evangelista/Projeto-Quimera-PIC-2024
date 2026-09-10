@@ -1,4 +1,4 @@
 import "../modules/teacher/teacher.container";
 import "../modules/auth/auth.container";
-import "../modules/water-experiment/experiment/water-experiment.container";
-import "../modules/water-experiment/response/water-response.container";
+import "../modules/experiment/experiment.container";
+import "../modules/body-water-loss-response/body-water-loss-response.container";

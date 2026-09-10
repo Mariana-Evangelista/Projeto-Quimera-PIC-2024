@@ -1,10 +1,13 @@
 import { Types } from "mongoose";
 
-export interface WaterExperimentTypes {
+export type ExperimentType = "body-water-loss" | "glycemic-control";
+
+export interface ExperimentTypes {
   pin: string;
   teacher: Types.ObjectId | string;
-  title: string;
-  description: string;
+  type: ExperimentType;
+  university: string;
+  class: string;
   liberateSend: boolean;
   liberateResult: boolean;
   responsesNumber: number;

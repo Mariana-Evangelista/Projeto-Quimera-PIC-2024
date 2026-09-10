@@ -1,24 +1,25 @@
 import { inject, injectable } from "tsyringe";
-import { WaterExperimentServiceTypes } from "../types/water-experiment.services.types";
-import { WaterExperimentTypes } from "../types/water-experiment.schemas.types";
-import { WaterExperimentRepositoryTypes } from "../types/water-experiment.repositories.types";
+import { ExperimentServiceTypes } from "../types/experiment.services.types";
+import { ExperimentTypes } from "../types/experiment.schemas.types";
+import { ExperimentRepositoryTypes } from "../types/experiment.repositories.types";
 import ServiceError, {
   ServiceErrorType,
-} from "../../../../shared/errors/ServiceError";
-import { ErrorCode } from "../../../../shared/errors/errorCodes";
+} from "../../../shared/errors/ServiceError";
+import { ErrorCode } from "../../../shared/errors/errorCodes";
 
 @injectable()
-export class WaterExperimentService implements WaterExperimentServiceTypes {
+export class ExperimentService implements ExperimentServiceTypes {
   constructor(
-    @inject("WaterExperimentRepository")
-    private waterExperimentRepository: WaterExperimentRepositoryTypes,
+    @inject("ExperimentRepository")
+    private experimentRepository: ExperimentRepositoryTypes,
   ) {}
 
-  async createWaterExperiment(waterExperiment: WaterExperimentTypes) {
+  async createExperiment(experiment: ExperimentTypes) {
     if (
-      !waterExperiment.title ||
-      !waterExperiment.description ||
-      !waterExperiment.teacher
+      !experiment.type ||
+      !experiment.teacher ||
+      !experiment.university ||
+      !experiment.class
     ) {
       throw new ServiceError(
         "Campos obrigatórios do experimento ausentes",
@@ -28,10 +29,23 @@ export class WaterExperimentService implements WaterExperimentServiceTypes {
       );
     }
 
+    const validTypes: ExperimentTypes["type"][] = [
+      "body-water-loss",
+      "glycemic-control",
+    ];
+    if (!validTypes.includes(experiment.type)) {
+      throw new ServiceError(
+        "Tipo de experimento inválido",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.EXPERIMENT_MISSING_FIELDS,
+      );
+    }
+
     const MAX_RETRIES = 5;
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
-        return await this.waterExperimentRepository.create(waterExperiment);
+        return await this.experimentRepository.create(experiment);
       } catch (err: any) {
         if (err?.code === 11000 && err.message?.includes("pin")) {
           if (attempt === MAX_RETRIES - 1) {
@@ -43,10 +57,8 @@ export class WaterExperimentService implements WaterExperimentServiceTypes {
             );
           }
 
-          waterExperiment.pin = require("crypto")
-            .randomBytes(8)
-            .toString("hex")
-            .slice(0, 6);
+          const { randomBytes } = require("crypto");
+          experiment.pin = randomBytes(8).toString("hex").slice(0, 6);
           continue;
         }
         throw err;
@@ -60,8 +72,8 @@ export class WaterExperimentService implements WaterExperimentServiceTypes {
       ErrorCode.EXPERIMENT_PIN_CONFLICT,
     );
   }
-  async getWaterExperimentById(id: string) {
-    const exp = await this.waterExperimentRepository.findById(id);
+  async getExperimentById(id: string) {
+    const exp = await this.experimentRepository.findById(id);
     if (!exp)
       throw new ServiceError(
         "Experimento não encontrado",
@@ -71,8 +83,8 @@ export class WaterExperimentService implements WaterExperimentServiceTypes {
       );
     return exp;
   }
-  async getWaterExperimentByPin(pin: string) {
-    const exp = await this.waterExperimentRepository.findByPin(pin);
+  async getExperimentByPin(pin: string) {
+    const exp = await this.experimentRepository.findByPin(pin);
     if (!exp)
       throw new ServiceError(
         "Experimento não encontrado",
@@ -82,15 +94,15 @@ export class WaterExperimentService implements WaterExperimentServiceTypes {
       );
     return exp;
   }
-  async getWaterExperimentByTeacher(teacherId: string) {
-    return this.waterExperimentRepository.findByTeacher(teacherId);
+  async getExperimentsByTeacher(teacherId: string) {
+    return this.experimentRepository.findByTeacher(teacherId);
   }
-  async updateWaterExperiment(
+  async updateExperiment(
     id: string,
-    waterExperiment: Partial<WaterExperimentTypes>,
+    experiment: Partial<ExperimentTypes>,
     requesterId: string,
   ) {
-    const existing = await this.waterExperimentRepository.findById(id);
+    const existing = await this.experimentRepository.findById(id);
     if (!existing)
       throw new ServiceError(
         "Experimento não encontrado",
@@ -109,21 +121,22 @@ export class WaterExperimentService implements WaterExperimentServiceTypes {
       );
     }
 
-    const updated: WaterExperimentTypes = {
+    const updated: ExperimentTypes = {
       pin: existing.pin,
       teacher: existing.teacher,
-      title: waterExperiment.title ?? existing.title,
-      description: waterExperiment.description ?? existing.description,
-      liberateSend: waterExperiment.liberateSend ?? existing.liberateSend,
-      liberateResult: waterExperiment.liberateResult ?? existing.liberateResult,
+      type: existing.type,
+      university: existing.university,
+      class: existing.class,
+      liberateSend: experiment.liberateSend ?? existing.liberateSend,
+      liberateResult: experiment.liberateResult ?? existing.liberateResult,
       responsesNumber: existing.responsesNumber,
       createdAt: existing.createdAt,
     };
 
-    return this.waterExperimentRepository.update(id, updated);
+    return this.experimentRepository.update(id, updated);
   }
-  async deleteWaterExperiment(id: string, requesterId: string) {
-    const existing = await this.waterExperimentRepository.findById(id);
+  async deleteExperiment(id: string, requesterId: string) {
+    const existing = await this.experimentRepository.findById(id);
     if (!existing)
       throw new ServiceError(
         "Experimento não encontrado",
@@ -142,6 +155,6 @@ export class WaterExperimentService implements WaterExperimentServiceTypes {
       );
     }
 
-    return this.waterExperimentRepository.delete(id);
+    return this.experimentRepository.delete(id);
   }
 }
