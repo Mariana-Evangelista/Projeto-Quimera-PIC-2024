@@ -8,13 +8,11 @@ export function BodyWaterLossResponseRoutes() {
 
   const controller = container.resolve(BodyWaterLossResponseController);
 
-  router.post(
-    "/",
-    controller.createBodyWaterLossResponse.bind(controller),
-  );
+  router.post("/", controller.createBodyWaterLossResponse.bind(controller));
 
   router.get(
     "/:pin",
+    authMiddleware,
     controller.getBodyWaterLossResponseByPin.bind(controller),
   );
 
