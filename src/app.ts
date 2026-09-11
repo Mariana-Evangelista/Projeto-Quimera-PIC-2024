@@ -9,6 +9,7 @@ import { AuthRoutes } from "./modules/auth/auth.routes";
 import { TeacherRoutes } from "./modules/teacher/teacher.routes";
 import { ExperimentRoutes } from "./modules/experiment/experiment.routes";
 import { BodyWaterLossResponseRoutes } from "./modules/body-water-loss-response/body-water-loss-response.routes";
+import { GlycemicControlResponseRoutes } from "./modules/glycemic-control-response/glycemic-control-response.routes";
 
 import { config } from "dotenv";
 
@@ -34,6 +35,7 @@ app.use("/auth", AuthRoutes());
 
 app.use("/experiment", ExperimentRoutes());
 app.use("/body-water-loss-response", BodyWaterLossResponseRoutes());
+app.use("/glycemic-control-response", GlycemicControlResponseRoutes());
 
 // error handler
 app.use(errorHandler);
