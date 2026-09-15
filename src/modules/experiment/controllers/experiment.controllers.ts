@@ -53,9 +53,9 @@ export class ExperimentController {
 
   getExperimentByPin = asyncHandler(
     async (req: Request, res: Response) => {
-      const { pin } = req.params;
+      const { pin, slug } = req.params;
       const experiment =
-        await this.experimentService.getExperimentByPin(pin);
+        await this.experimentService.getExperimentByPin(pin, slug);
       res.status(200).json(experiment);
     },
   );
