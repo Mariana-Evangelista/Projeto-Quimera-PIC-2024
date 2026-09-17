@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import "./containers";
 
+import { createServer } from "node:http";
 import express from "express";
 import cors from "cors";
 import connectMongoDB from "./database/mongoDb";
@@ -14,6 +15,7 @@ import { GlycemicControlResponseRoutes } from "./modules/glycemic-control-respon
 import { config } from "dotenv";
 
 import errorHandler from "./middlewares/errorHandler";
+import { initSockets } from "./sockets";
 
 config();
 
@@ -40,4 +42,7 @@ app.use("/glycemic-control-response", GlycemicControlResponseRoutes());
 // error handler
 app.use(errorHandler);
 
-app.listen(port, () => console.log(`Server is running on port ${port}`));
+const httpServer = createServer(app);
+initSockets(httpServer);
+
+httpServer.listen(port, () => console.log(`Server is running on port ${port}`));
