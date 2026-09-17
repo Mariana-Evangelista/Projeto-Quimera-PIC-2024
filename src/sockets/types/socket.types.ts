@@ -10,12 +10,13 @@ export interface JoinPayload {
 }
 
 export const SOCKET_EVENTS = {
-  JOIN: 'join',
-  LEAVE: 'leave',
-  JOIN_REJECTED: 'experiment:join-rejected',
-  UPDATED: 'experiment:updated',
+  JOIN: "join",
+  LEAVE: "leave",
+  JOIN_REJECTED: "experiment:join-rejected",
+  UPDATED: "experiment:updated",
 } as const;
 
-export const SOCKET_NAMESPACE = '/experiments';
+export const SOCKET_NAMESPACE = "/experiment";
 
-export const getExperimentRoom = (experimentId: string): string => `experiment:${experimentId}`;
+export const getExperimentRoom = (experimentId: string): string =>
+  `experiment:${experimentId}`;
