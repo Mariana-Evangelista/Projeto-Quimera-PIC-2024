@@ -1,8 +1,10 @@
-import { Namespace, Socket } from "socket.io";
+import { Server as SocketIOServer, Namespace, Socket } from "socket.io";
 import { container } from "tsyringe";
 import { ExperimentServiceTypes } from "../modules/experiment/types/experiment.services.types";
 import {
   ExperimentUpdatedPayload,
+  JoinAckResponse,
+  JoinPayload,
   SOCKET_EVENTS,
   SOCKET_NAMESPACE,
   getExperimentRoom,
@@ -10,7 +12,7 @@ import {
 
 let experimentNamespace: Namespace | null = null;
 
-export function registerExperimentNamespace(io: any): Namespace {
+export function registerExperimentNamespace(io: SocketIOServer): Namespace {
   const nsp = io.of(SOCKET_NAMESPACE);
   experimentNamespace = nsp;
 
@@ -19,8 +21,13 @@ export function registerExperimentNamespace(io: any): Namespace {
 
     socket.on(
       SOCKET_EVENTS.JOIN,
-      async (pin: string, slug: string, callback: (response: any) => void) => {
+      async (
+        payload: JoinPayload,
+        callback?: (response: JoinAckResponse) => void,
+      ) => {
         try {
+          const { pin, slug } = payload ?? ({} as JoinPayload);
+
           if (!pin || typeof pin !== "string" || pin.trim() === "") {
             callback?.({ success: false, error: "PIN inválido" });
             socket.emit(SOCKET_EVENTS.JOIN_REJECTED, {
@@ -37,8 +44,9 @@ export function registerExperimentNamespace(io: any): Namespace {
           );
 
           const experimentId =
-            (experiment as any)._id?.toString() ||
-            (experiment as any).id?.toString();
+            (
+              experiment as { _id?: { toString(): string }; id?: string }
+            )._id?.toString() || (experiment as { id?: string }).id?.toString();
           if (!experimentId) {
             callback?.({ success: false, error: "Experimento inválido" });
             socket.emit(SOCKET_EVENTS.JOIN_REJECTED, {
