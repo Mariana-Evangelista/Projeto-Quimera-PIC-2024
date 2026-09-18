@@ -83,7 +83,7 @@ export class ExperimentService implements ExperimentServiceTypes {
       );
     return exp;
   }
-  async getExperimentByPin(pin: string) {
+  async getExperimentByPin(pin: string, slug: string) {
     const exp = await this.experimentRepository.findByPin(pin);
     if (!exp)
       throw new ServiceError(
@@ -92,6 +92,16 @@ export class ExperimentService implements ExperimentServiceTypes {
         undefined,
         ErrorCode.EXPERIMENT_NOT_FOUND,
       );
+
+    if (exp.type !== slug) {
+      throw new ServiceError(
+        "O Pin não corresponde ao experimento acessado",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.EXPERIMENT_TYPE_MISMATCH,
+      );
+    }
+
     return exp;
   }
   async getExperimentsByTeacher(teacherId: string) {

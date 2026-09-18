@@ -19,7 +19,7 @@ export function ExperimentRoutes() {
     experimentController.getExperimentById.bind(experimentController),
   );
   router.get(
-    "/pin/:pin",
+    "/pin/:pin/:slug",
     experimentController.getExperimentByPin.bind(experimentController),
   );
 

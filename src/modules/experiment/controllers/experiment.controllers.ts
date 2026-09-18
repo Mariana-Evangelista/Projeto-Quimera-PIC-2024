@@ -7,6 +7,7 @@ import { ExperimentTypes } from "../types/experiment.schemas.types";
 import { asyncHandler } from "../../../shared/asyncHandler";
 import ServiceError, { ServiceErrorType } from "../../../shared/errors/ServiceError";
 import { ErrorCode } from "../../../shared/errors/errorCodes";
+import { emitExperimentUpdate } from "../../../sockets";
 
 @injectable()
 export class ExperimentController {
@@ -53,9 +54,9 @@ export class ExperimentController {
 
   getExperimentByPin = asyncHandler(
     async (req: Request, res: Response) => {
-      const { pin } = req.params;
+      const { pin, slug } = req.params;
       const experiment =
-        await this.experimentService.getExperimentByPin(pin);
+        await this.experimentService.getExperimentByPin(pin, slug);
       res.status(200).json(experiment);
     },
   );
@@ -114,6 +115,18 @@ export class ExperimentController {
 
     const updatedExperiment =
       await this.experimentService.updateExperiment(id, updatedData, requesterId);
+    
+    if (updatedExperiment) {
+      const experimentId = (updatedExperiment as any)._id?.toString() || (updatedExperiment as any).id?.toString();
+      if (experimentId) {
+        emitExperimentUpdate(experimentId, {
+          experimentId,
+          liberateSend: updatedExperiment.liberateSend,
+          liberateResult: updatedExperiment.liberateResult,
+        });
+      }
+    }
+
     res.status(200).json(updatedExperiment);
   });
 
