@@ -11,6 +11,11 @@ export function GlycemicControlResponseRoutes() {
   router.post("/", controller.createGlycemicControlResponse.bind(controller));
 
   router.get(
+    "/analytics/:pin",
+    controller.getGlycemicControlAnalyticsByPin.bind(controller),
+  );
+
+  router.get(
     "/:pin",
     authMiddleware,
     controller.getGlycemicControlResponseByPin.bind(controller),

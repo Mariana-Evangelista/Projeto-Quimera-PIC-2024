@@ -11,6 +11,11 @@ export function BodyWaterLossResponseRoutes() {
   router.post("/", controller.createBodyWaterLossResponse.bind(controller));
 
   router.get(
+    "/analytics/:pin",
+    controller.getBodyWaterLossAnalyticsByPin.bind(controller),
+  );
+
+  router.get(
     "/:pin",
     authMiddleware,
     controller.getBodyWaterLossResponseByPin.bind(controller),

@@ -1,7 +1,7 @@
 import { inject, injectable } from "tsyringe";
 import { BodyWaterLossResponseServiceTypes } from "../types/body-water-loss-response.services.types";
 import { BodyWaterLossResponseRepositoryTypes } from "../types/body-water-loss-response.repositories.types";
-import { BodyWaterLossResponseTypes } from "../types/body-water-loss-response.schemas.types";
+import { BodyWaterLossResponseTypes, BodyWaterLossChartDataTypes, BodyWaterLossChartScore } from "../types/body-water-loss-response.schemas.types";
 import ServiceError, {
   ServiceErrorType,
 } from "../../../shared/errors/ServiceError";
@@ -63,5 +63,31 @@ export class BodyWaterLossResponseService implements BodyWaterLossResponseServic
   }
   async deleteBodyWaterLossResponse(id: string) {
     return this.bodyWaterLossResponseRepository.delete(id);
+  }
+
+  async getBodyWaterLossChartByPin(pin: string): Promise<BodyWaterLossChartDataTypes[]> {
+    const responses = await this.bodyWaterLossResponseRepository.findByPin(pin);
+    const responseList = responses || [];
+
+    const scoreBuckets: Record<BodyWaterLossChartScore, { label: string; students: number }> = {
+      0: { label: "Errou as duas opções", students: 0 },
+      20: { label: "Acertou a primeira opção", students: 0 },
+      80: { label: "Acertou a segunda opção", students: 0 },
+      100: { label: "Acertou as duas opções", students: 0 },
+    };
+
+    for (const response of responseList) {
+      const score = response.score as BodyWaterLossChartScore;
+      if (scoreBuckets[score]) {
+        scoreBuckets[score].students += 1;
+      }
+    }
+
+    return [
+      { students: scoreBuckets[0].students, score: 0, label: scoreBuckets[0].label },
+      { students: scoreBuckets[20].students, score: 20, label: scoreBuckets[20].label },
+      { students: scoreBuckets[80].students, score: 80, label: scoreBuckets[80].label },
+      { students: scoreBuckets[100].students, score: 100, label: scoreBuckets[100].label },
+    ];
   }
 }

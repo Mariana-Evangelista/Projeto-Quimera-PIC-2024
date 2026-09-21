@@ -25,6 +25,12 @@ export class GlycemicControlResponseController {
     res.status(200).json(response);
   });
 
+  getGlycemicControlAnalyticsByPin = asyncHandler(async (req: Request, res: Response) => {
+    const { pin } = req.params;
+    const analytics = await this.glycemicControlResponseService.getGlycemicControlChartByPin(pin);
+    res.status(200).json(analytics);
+  });
+
   updateGlycemicControlResponse = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { studentName, answers } = req.body;

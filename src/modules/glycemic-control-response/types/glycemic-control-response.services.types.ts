@@ -1,4 +1,5 @@
 import { GlycemicControlResponseTypes } from "./glycemic-control-response.schemas.types";
+import { GlycemicControlChartDataTypes } from "./glycemic-control-response.schemas.types";
 
 export interface GlycemicControlResponseServiceTypes {
   createGlycemicControlResponse(
@@ -11,4 +12,5 @@ export interface GlycemicControlResponseServiceTypes {
     response: GlycemicControlResponseTypes,
   ): Promise<GlycemicControlResponseTypes | null>;
   deleteGlycemicControlResponse(id: string): Promise<void>;
+  getGlycemicControlChartByPin(pin: string): Promise<GlycemicControlChartDataTypes[]>;
 }

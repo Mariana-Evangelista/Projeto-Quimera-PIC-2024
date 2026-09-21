@@ -25,6 +25,12 @@ export class BodyWaterLossResponseController {
     res.status(200).json(response);
   });
 
+  getBodyWaterLossAnalyticsByPin = asyncHandler(async (req: Request, res: Response) => {
+    const { pin } = req.params;
+    const analytics = await this.bodyWaterLossResponseService.getBodyWaterLossChartByPin(pin);
+    res.status(200).json(analytics);
+  });
+
   updateBodyWaterLossResponse = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { studentName, answerOne, answerTwo } = req.body;

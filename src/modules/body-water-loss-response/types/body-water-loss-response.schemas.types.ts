@@ -10,3 +10,11 @@ export interface BodyWaterLossResponseTypes {
   answerTwo: BodyWaterLossAnswerTypes;
   score: number;
 }
+
+export type BodyWaterLossChartScore = 0 | 20 | 80 | 100;
+
+export interface BodyWaterLossChartDataTypes {
+  students: number;
+  score: BodyWaterLossChartScore;
+  label: string;
+}

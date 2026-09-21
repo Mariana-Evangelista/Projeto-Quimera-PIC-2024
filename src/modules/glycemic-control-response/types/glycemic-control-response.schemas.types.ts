@@ -10,3 +10,8 @@ export interface GlycemicControlResponseTypes {
   answers: GlycemicControlAnswerTypes[];
   score: number;
 }
+
+export interface GlycemicControlChartDataTypes {
+  students: number;
+  question: number;
+}
