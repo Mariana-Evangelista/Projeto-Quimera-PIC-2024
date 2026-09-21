@@ -1,7 +1,7 @@
 import { inject, injectable } from "tsyringe";
 import { GlycemicControlResponseServiceTypes } from "../types/glycemic-control-response.services.types";
 import { GlycemicControlResponseRepositoryTypes } from "../types/glycemic-control-response.repositories.types";
-import { GlycemicControlResponseTypes } from "../types/glycemic-control-response.schemas.types";
+import { GlycemicControlResponseTypes, GlycemicControlChartDataTypes } from "../types/glycemic-control-response.schemas.types";
 import ServiceError, {
   ServiceErrorType,
 } from "../../../shared/errors/ServiceError";
@@ -63,5 +63,38 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
   }
   async deleteGlycemicControlResponse(id: string) {
     return this.glycemicControlResponseRepository.delete(id);
+  }
+
+  async getGlycemicControlChartByPin(pin: string): Promise<GlycemicControlChartDataTypes[]> {
+    const responses = await this.glycemicControlResponseRepository.findByPin(pin);
+    const responseList = responses || [];
+
+    const questionCounts: Record<number, number> = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    };
+
+    for (const response of responseList) {
+      const answeredQuestions = new Set<number>();
+      for (const answer of response.answers) {
+        if (answer.weight === 20 && answer.question >= 1 && answer.question <= 5) {
+          answeredQuestions.add(answer.question);
+        }
+      }
+      for (const question of answeredQuestions) {
+        questionCounts[question] += 1;
+      }
+    }
+
+    return [
+      { students: questionCounts[1], question: 1 },
+      { students: questionCounts[2], question: 2 },
+      { students: questionCounts[3], question: 3 },
+      { students: questionCounts[4], question: 4 },
+      { students: questionCounts[5], question: 5 },
+    ];
   }
 }

@@ -1,4 +1,5 @@
 import { BodyWaterLossResponseTypes } from "./body-water-loss-response.schemas.types";
+import { BodyWaterLossChartDataTypes } from "./body-water-loss-response.schemas.types";
 
 export interface BodyWaterLossResponseServiceTypes {
   createBodyWaterLossResponse(
@@ -11,4 +12,5 @@ export interface BodyWaterLossResponseServiceTypes {
     response: BodyWaterLossResponseTypes,
   ): Promise<BodyWaterLossResponseTypes | null>;
   deleteBodyWaterLossResponse(id: string): Promise<void>;
+  getBodyWaterLossChartByPin(pin: string): Promise<BodyWaterLossChartDataTypes[]>;
 }
