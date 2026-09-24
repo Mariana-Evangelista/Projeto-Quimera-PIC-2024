@@ -7,12 +7,31 @@ import ServiceError, {
 } from "../../../shared/errors/ServiceError";
 import { ErrorCode } from "../../../shared/errors/errorCodes";
 
+const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])[^!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]*$/;
+
 @injectable()
 export class TeacherService implements TeacherServiceTypes {
   constructor(
     @inject("TeacherRepository")
     private teacherRepository: TeacherRepositoryTypes,
   ) {}
+
+  private validatePassword(password: string) {
+    if (password.length < 8 || !passwordRegex.test(password)) {
+      throw new ServiceError(
+        "A senha deve ter pelo menos 8 caracteres, conter pelo menos uma letra maiúscula, uma minúscula e um número, e não pode conter caracteres especiais",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.TEACHER_PASSWORD_INVALID,
+      );
+    }
+  }
+
+  private sanitizeTeacher(teacher: any) {
+    const teacherObj = teacher.toObject ? teacher.toObject() : teacher;
+    const { password, ...teacherWithoutPassword } = teacherObj;
+    return teacherWithoutPassword;
+  }
 
   async createTeacher(teacher: TeacherTypes) {
     if (!teacher.email || !teacher.password || !teacher.name) {
@@ -24,6 +43,8 @@ export class TeacherService implements TeacherServiceTypes {
       );
     }
 
+    this.validatePassword(teacher.password);
+
     const existing = await this.teacherRepository.findByEmail(teacher.email);
     if (existing) {
       throw new ServiceError(
@@ -34,7 +55,8 @@ export class TeacherService implements TeacherServiceTypes {
       );
     }
 
-    return this.teacherRepository.create(teacher);
+    const createdTeacher = await this.teacherRepository.create(teacher);
+    return this.sanitizeTeacher(createdTeacher);
   }
   async getTeacherById(id: string) {
     const teacher = await this.teacherRepository.findById(id);
@@ -45,10 +67,11 @@ export class TeacherService implements TeacherServiceTypes {
         undefined,
         ErrorCode.TEACHER_NOT_FOUND,
       );
-    return teacher;
+    return this.sanitizeTeacher(teacher);
   }
   async getAllTeacher() {
-    return this.teacherRepository.findAll();
+    const teachers = await this.teacherRepository.findAll();
+    return teachers.map((teacher) => this.sanitizeTeacher(teacher));
   }
   async updateTeacher(id: string, teacher: TeacherTypes) {
     const existing = await this.teacherRepository.findById(id);
@@ -70,7 +93,13 @@ export class TeacherService implements TeacherServiceTypes {
           ErrorCode.TEACHER_EMAIL_CONFLICT,
         );
     }
-    return this.teacherRepository.update(id, teacher);
+
+    if (teacher.password) {
+      this.validatePassword(teacher.password);
+    }
+
+    const updatedTeacher = await this.teacherRepository.update(id, teacher);
+    return this.sanitizeTeacher(updatedTeacher);
   }
   async deleteTeacher(id: string) {
     const existing = await this.teacherRepository.findById(id);
