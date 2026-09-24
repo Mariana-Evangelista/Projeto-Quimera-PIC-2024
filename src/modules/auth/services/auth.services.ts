@@ -45,8 +45,11 @@ export class AuthService implements AuthServiceTypes {
       expiresIn: "1d",
     });
 
+    const teacherObj = teacher.toObject ? teacher.toObject() : teacher;
+    const { password: _, ...teacherWithoutPassword } = teacherObj;
+
     return {
-      teacher,
+      teacher: teacherWithoutPassword,
       token,
     };
   }
