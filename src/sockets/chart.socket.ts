@@ -1,0 +1,134 @@
+import { Server as SocketIOServer, Namespace, Socket } from "socket.io";
+import { container } from "tsyringe";
+import { ExperimentServiceTypes } from "../modules/experiment/types/experiment.services.types";
+import {
+  ChartJoinPayload,
+  CHART_SOCKET_EVENTS,
+  ExperimentChartUpdatedPayload,
+  getExperimentRoom,
+  JoinAckResponse,
+  JoinRejectedPayload,
+} from "./types/socket.types";
+
+type ChartExperimentType = "body-water-loss" | "glycemic-control";
+
+const chartNamespaces = new Map<ChartExperimentType, Namespace>();
+
+export function registerChartNamespace(
+  io: SocketIOServer,
+  namespacePath: string,
+  experimentType: ChartExperimentType,
+): Namespace {
+  const nsp = io.of(namespacePath);
+  chartNamespaces.set(experimentType, nsp);
+
+  nsp.on("connection", (socket: Socket) => {
+    let joinedExperimentId: string | null = null;
+
+    socket.on(
+      CHART_SOCKET_EVENTS.JOIN,
+      async (
+        payload: ChartJoinPayload,
+        callback?: (response: JoinAckResponse) => void,
+      ) => {
+        try {
+          const { pin } = payload ?? ({} as ChartJoinPayload);
+
+          if (!pin || typeof pin !== "string" || pin.trim() === "") {
+            callback?.({ success: false, error: "PIN inválido" });
+            socket.emit(CHART_SOCKET_EVENTS.JOIN_REJECTED, {
+              message: "PIN inválido",
+            } as JoinRejectedPayload);
+            return;
+          }
+
+          const experimentService =
+            container.resolve<ExperimentServiceTypes>("ExperimentService");
+          const experiment = await experimentService.getExperimentByPinForParticipant(
+            pin.trim(),
+            experimentType,
+          );
+
+          const experimentId =
+            (
+              experiment as { _id?: { toString(): string }; id?: string }
+            )._id?.toString() || (experiment as { id?: string }).id?.toString();
+          if (!experimentId) {
+            callback?.({ success: false, error: "Experimento inválido" });
+            socket.emit(CHART_SOCKET_EVENTS.JOIN_REJECTED, {
+              message: "Experimento inválido",
+            } as JoinRejectedPayload);
+            return;
+          }
+
+          if (joinedExperimentId) {
+            const previousRoom = getExperimentRoom(joinedExperimentId);
+            socket.leave(previousRoom);
+          }
+
+          const room = getExperimentRoom(experimentId);
+          socket.join(room);
+          joinedExperimentId = experimentId;
+
+          callback?.({ success: true, experimentId });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Erro ao validar PIN";
+          callback?.({ success: false, error: errorMessage });
+          socket.emit(CHART_SOCKET_EVENTS.JOIN_REJECTED, {
+            message: "PIN inválido ou experimento não encontrado",
+          } as JoinRejectedPayload);
+        }
+      },
+    );
+
+    socket.on(CHART_SOCKET_EVENTS.LEAVE, () => {
+      if (joinedExperimentId) {
+        const room = getExperimentRoom(joinedExperimentId);
+        socket.leave(room);
+        joinedExperimentId = null;
+      }
+    });
+
+    socket.on("disconnect", () => {
+      if (joinedExperimentId) {
+        const room = getExperimentRoom(joinedExperimentId);
+        socket.leave(room);
+        joinedExperimentId = null;
+      }
+    });
+  });
+
+  return nsp;
+}
+
+export function emitChartUpdate<TChart>(
+  experimentType: ChartExperimentType,
+  experimentId: string,
+  chart: TChart[],
+): void {
+  const namespace = chartNamespaces.get(experimentType);
+
+  if (!namespace) {
+    console.warn(
+      "[Socket.IO] Chart namespace not initialized, skipping emit",
+    );
+    return;
+  }
+
+  try {
+    const payload: ExperimentChartUpdatedPayload<TChart> = {
+      experimentId,
+      chart,
+    };
+
+    const room = getExperimentRoom(experimentId);
+    namespace.to(room).emit(CHART_SOCKET_EVENTS.UPDATED, payload);
+  } catch (error) {
+    console.error("[Socket.IO] Failed to emit chart:updated", {
+      experimentType,
+      experimentId,
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+}

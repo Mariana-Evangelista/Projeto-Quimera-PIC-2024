@@ -9,6 +9,7 @@ import ServiceError, {
 import { ErrorCode } from "../../../shared/errors/errorCodes";
 import { Experiment } from "../../experiment/schemas/experiment.schemas";
 import { BODY_WATER_LOSS_ANSWER_KEY } from "../constants/body-water-loss-response.answer-key";
+import { emitChartUpdate } from "../../../sockets";
 
 @injectable()
 export class BodyWaterLossResponseService implements BodyWaterLossResponseServiceTypes {
@@ -110,7 +111,18 @@ export class BodyWaterLossResponseService implements BodyWaterLossResponseServic
     const scored = this.buildScoredAnswers(answerOne, answerTwo);
     const toSave: BodyWaterLossResponseTypes = { ...rest, ...scored };
 
-    return this.bodyWaterLossResponseRepository.create(toSave);
+    const createdResponse =
+      await this.bodyWaterLossResponseRepository.create(toSave);
+
+    const chart = await this.getBodyWaterLossChartByPin(input.pin);
+
+    emitChartUpdate(
+      "body-water-loss",
+      experiment._id.toString(),
+      chart,
+    );
+
+    return createdResponse;
   }
 
   async getBodyWaterLossResponseByPin(pin: string, requesterId: string) {
