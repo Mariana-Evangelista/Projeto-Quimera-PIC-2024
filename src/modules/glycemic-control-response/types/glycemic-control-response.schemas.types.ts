@@ -11,6 +11,12 @@ export interface GlycemicControlResponseTypes {
   score: number;
 }
 
+export interface GlycemicControlResponseInput {
+  studentName: string;
+  pin: string;
+  answers: { question: number; answer: string; weight?: number }[];
+}
+
 export interface GlycemicControlChartDataTypes {
   students: number;
   question: number;

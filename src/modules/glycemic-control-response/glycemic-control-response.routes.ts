@@ -21,12 +21,6 @@ export function GlycemicControlResponseRoutes() {
     controller.getGlycemicControlResponseByPin.bind(controller),
   );
 
-  router.put(
-    "/:id",
-    authMiddleware,
-    controller.updateGlycemicControlResponse.bind(controller),
-  );
-
   router.delete(
     "/:id",
     authMiddleware,

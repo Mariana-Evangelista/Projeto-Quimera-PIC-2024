@@ -21,12 +21,6 @@ export function BodyWaterLossResponseRoutes() {
     controller.getBodyWaterLossResponseByPin.bind(controller),
   );
 
-  router.put(
-    "/:id",
-    authMiddleware,
-    controller.updateBodyWaterLossResponse.bind(controller),
-  );
-
   router.delete(
     "/:id",
     authMiddleware,

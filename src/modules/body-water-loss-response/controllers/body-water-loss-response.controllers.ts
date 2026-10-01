@@ -1,8 +1,11 @@
 import { inject, injectable } from "tsyringe";
 import { Request, Response } from "express";
+import { CustomRequest } from "../../../middlewares/authMiddleware";
 import { BodyWaterLossResponseServiceTypes } from "../types/body-water-loss-response.services.types";
-import { BodyWaterLossResponseTypes, BodyWaterLossAnswerTypes } from "../types/body-water-loss-response.schemas.types";
+import { BodyWaterLossResponseTypes, BodyWaterLossAnswerTypes, BodyWaterLossResponseInput } from "../types/body-water-loss-response.schemas.types";
 import { asyncHandler } from "../../../shared/asyncHandler";
+import ServiceError, { ServiceErrorType } from "../../../shared/errors/ServiceError";
+import { ErrorCode } from "../../../shared/errors/errorCodes";
 
 @injectable()
 export class BodyWaterLossResponseController {
@@ -14,14 +17,23 @@ export class BodyWaterLossResponseController {
   createBodyWaterLossResponse = asyncHandler(async (req: Request, res: Response) => {
     const { studentName, pin, answerOne, answerTwo } = req.body;
 
-    const response: BodyWaterLossResponseTypes = { studentName, pin, answerOne, answerTwo, score: 0 };
-    const newResponse = await this.bodyWaterLossResponseService.createBodyWaterLossResponse(response);
+    const input: BodyWaterLossResponseInput = { studentName, pin, answerOne, answerTwo };
+    const newResponse = await this.bodyWaterLossResponseService.createBodyWaterLossResponse(input);
     res.status(201).json(newResponse);
   });
 
-  getBodyWaterLossResponseByPin = asyncHandler(async (req: Request, res: Response) => {
+  getBodyWaterLossResponseByPin = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { pin } = req.params;
-    const response = await this.bodyWaterLossResponseService.getBodyWaterLossResponseByPin(pin);
+    const requesterId = req.user?.id;
+    if (!requesterId) {
+      throw new ServiceError(
+        "Acesso não autorizado",
+        ServiceErrorType.Unauthorized,
+        undefined,
+        ErrorCode.AUTH_UNAUTHORIZED,
+      );
+    }
+    const response = await this.bodyWaterLossResponseService.getBodyWaterLossResponseByPin(pin, requesterId);
     res.status(200).json(response);
   });
 
@@ -31,27 +43,18 @@ export class BodyWaterLossResponseController {
     res.status(200).json(analytics);
   });
 
-  updateBodyWaterLossResponse = asyncHandler(async (req: Request, res: Response) => {
+  deleteBodyWaterLossResponse = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { id } = req.params;
-    const { studentName, answerOne, answerTwo } = req.body;
-
-    const existingResponse = await this.bodyWaterLossResponseService.getBodyWaterLossResponseById(id);
-
-    const updatedData = {
-      studentName: (studentName as string) || (existingResponse ? existingResponse.studentName : ""),
-      pin: existingResponse ? existingResponse.pin : "",
-      answerOne: answerOne || (existingResponse ? existingResponse.answerOne : null),
-      answerTwo: answerTwo || (existingResponse ? existingResponse.answerTwo : null),
-      score: 0,
-    } as any;
-
-    const updatedResponse = await this.bodyWaterLossResponseService.updateBodyWaterLossResponse(id, updatedData);
-    res.status(200).json(updatedResponse);
-  });
-
-  deleteBodyWaterLossResponse = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    await this.bodyWaterLossResponseService.deleteBodyWaterLossResponse(id);
+    const requesterId = req.user?.id;
+    if (!requesterId) {
+      throw new ServiceError(
+        "Acesso não autorizado",
+        ServiceErrorType.Unauthorized,
+        undefined,
+        ErrorCode.AUTH_UNAUTHORIZED,
+      );
+    }
+    await this.bodyWaterLossResponseService.deleteBodyWaterLossResponse(id, requesterId);
     res.status(204).send();
   });
 }

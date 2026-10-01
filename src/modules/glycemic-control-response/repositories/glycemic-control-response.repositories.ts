@@ -15,11 +15,6 @@ export class GlycemicControlResponseRepository implements GlycemicControlRespons
   async findById(id: string) {
     return await GlycemicControlResponse.findById(id);
   }
-  async update(id: string, response: GlycemicControlResponseTypes) {
-    return await GlycemicControlResponse.findByIdAndUpdate(id, response, {
-      new: true,
-    });
-  }
   async delete(id: string) {
     await GlycemicControlResponse.findByIdAndDelete(id);
   }

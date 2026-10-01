@@ -44,11 +44,6 @@ export class TeacherController {
     res.status(200).json(teacher);
   });
 
-  getAllTeachers = asyncHandler(async (req: Request, res: Response) => {
-    const teachers = await this.teacherService.getAllTeacher();
-    res.status(200).json(teachers);
-  });
-
   updateTeacher = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { id } = req.params;
     const requesterId = req.user?.id;

@@ -11,6 +11,13 @@ export interface BodyWaterLossResponseTypes {
   score: number;
 }
 
+export interface BodyWaterLossResponseInput {
+  studentName: string;
+  pin: string;
+  answerOne: string | { value: string };
+  answerTwo: string | { value: string };
+}
+
 export type BodyWaterLossChartScore = 0 | 20 | 80 | 100;
 
 export interface BodyWaterLossChartDataTypes {

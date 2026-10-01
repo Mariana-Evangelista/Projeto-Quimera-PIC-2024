@@ -1,5 +1,5 @@
 import { model, Schema } from "mongoose";
-import { ExperimentTypes, ExperimentType } from "../types/experiment.schemas.types";
+import { ExperimentTypes, ExperimentType, ExperimentStatus } from "../types/experiment.schemas.types";
 
 const ExperimentSchema = new Schema<ExperimentTypes>({
   pin: { type: String, required: true, index: { unique: true } },
@@ -11,7 +11,8 @@ const ExperimentSchema = new Schema<ExperimentTypes>({
   liberateResult: { type: Boolean, default: false },
   responsesNumber: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
+  status: { type: String, enum: ["Não iniciado", "Em Progresso", "Finalizado"], required: true, default: "Não iniciado" },
 });
 
 export const Experiment = model<ExperimentTypes>("Experiment", ExperimentSchema);
-export { ExperimentType };
+export { ExperimentType, ExperimentStatus };

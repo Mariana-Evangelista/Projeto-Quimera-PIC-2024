@@ -15,9 +15,6 @@ export class TeacherRepository implements TeacherRepositoryTypes {
   async findByEmail(email: string) {
     return await Teacher.findOne({ email }).select("+password");
   }
-  async findAll() {
-    return await Teacher.find();
-  }
   async update(id: string, teacher: TeacherTypes) {
     const doc = await Teacher.findById(id).select("+password");
     if (!doc) return null;

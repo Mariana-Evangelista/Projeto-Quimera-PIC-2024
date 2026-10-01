@@ -1,16 +1,12 @@
 import { GlycemicControlResponseTypes } from "./glycemic-control-response.schemas.types";
 import { GlycemicControlChartDataTypes } from "./glycemic-control-response.schemas.types";
+import { GlycemicControlResponseInput } from "./glycemic-control-response.schemas.types";
 
 export interface GlycemicControlResponseServiceTypes {
   createGlycemicControlResponse(
-    response: GlycemicControlResponseTypes,
+    response: GlycemicControlResponseInput,
   ): Promise<GlycemicControlResponseTypes>;
-  getGlycemicControlResponseByPin(pin: string): Promise<GlycemicControlResponseTypes[] | null>;
-  getGlycemicControlResponseById(id: string): Promise<GlycemicControlResponseTypes | null>;
-  updateGlycemicControlResponse(
-    id: string,
-    response: GlycemicControlResponseTypes,
-  ): Promise<GlycemicControlResponseTypes | null>;
-  deleteGlycemicControlResponse(id: string): Promise<void>;
+  getGlycemicControlResponseByPin(pin: string, requesterId: string): Promise<GlycemicControlResponseTypes[] | null>;
+  deleteGlycemicControlResponse(id: string, requesterId: string): Promise<void>;
   getGlycemicControlChartByPin(pin: string): Promise<GlycemicControlChartDataTypes[]>;
 }

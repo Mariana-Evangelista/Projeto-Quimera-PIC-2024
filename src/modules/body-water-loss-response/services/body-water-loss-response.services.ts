@@ -1,12 +1,14 @@
 import { inject, injectable } from "tsyringe";
+import { isValidObjectId } from "mongoose";
 import { BodyWaterLossResponseServiceTypes } from "../types/body-water-loss-response.services.types";
 import { BodyWaterLossResponseRepositoryTypes } from "../types/body-water-loss-response.repositories.types";
-import { BodyWaterLossResponseTypes, BodyWaterLossChartDataTypes, BodyWaterLossChartScore } from "../types/body-water-loss-response.schemas.types";
+import { BodyWaterLossResponseTypes, BodyWaterLossResponseInput, BodyWaterLossChartDataTypes, BodyWaterLossChartScore } from "../types/body-water-loss-response.schemas.types";
 import ServiceError, {
   ServiceErrorType,
 } from "../../../shared/errors/ServiceError";
 import { ErrorCode } from "../../../shared/errors/errorCodes";
 import { Experiment } from "../../experiment/schemas/experiment.schemas";
+import { BODY_WATER_LOSS_ANSWER_KEY } from "../constants/body-water-loss-response.answer-key";
 
 @injectable()
 export class BodyWaterLossResponseService implements BodyWaterLossResponseServiceTypes {
@@ -15,18 +17,9 @@ export class BodyWaterLossResponseService implements BodyWaterLossResponseServic
     private bodyWaterLossResponseRepository: BodyWaterLossResponseRepositoryTypes,
   ) {}
 
-  async createBodyWaterLossResponse(response: BodyWaterLossResponseTypes) {
-    if (!response.pin) {
-      throw new ServiceError(
-        "PIN do experimento é obrigatório",
-        ServiceErrorType.BadRequest,
-        undefined,
-        ErrorCode.RESPONSE_PIN_REQUIRED,
-      );
-    }
-
+  private async findExperimentByPinAndType(pin: string) {
     const experiment = await Experiment.findOne({
-      pin: response.pin,
+      pin,
       type: "body-water-loss",
     });
     if (!experiment) {
@@ -37,35 +30,103 @@ export class BodyWaterLossResponseService implements BodyWaterLossResponseServic
         ErrorCode.EXPERIMENT_NOT_FOUND,
       );
     }
+    return experiment;
+  }
 
-    const score =
-      Number(response.answerOne?.weight || 0) +
-      Number(response.answerTwo?.weight || 0);
-    const toSave: BodyWaterLossResponseTypes = { ...response, score };
+  private assertAcceptingResponses(experiment: { status: string }) {
+    if (experiment.status === "Não iniciado") {
+      throw new ServiceError(
+        "O experimento ainda não foi liberado para envio",
+        ServiceErrorType.Conflict,
+        undefined,
+        ErrorCode.EXPERIMENT_NOT_STARTED,
+      );
+    }
+    if (experiment.status === "Finalizado") {
+      throw new ServiceError(
+        "Experimento finalizado não aceita novas respostas",
+        ServiceErrorType.Conflict,
+        undefined,
+        ErrorCode.EXPERIMENT_FINALIZED,
+      );
+    }
+  }
+
+  private async assertExperimentOwner(pin: string, requesterId: string) {
+    const experiment = await this.findExperimentByPinAndType(pin);
+    if (String(experiment.teacher) !== requesterId) {
+      throw new ServiceError(
+        "Operação não autorizada",
+        ServiceErrorType.Forbidden,
+        undefined,
+        ErrorCode.EXPERIMENT_FORBIDDEN,
+      );
+    }
+    return experiment;
+  }
+
+  private async findResponseOrFail(id: string) {
+    if (!isValidObjectId(id)) {
+      throw new ServiceError("ID inválido", ServiceErrorType.BadRequest, undefined, ErrorCode.BAD_REQUEST);
+    }
+    const response = await this.bodyWaterLossResponseRepository.findById(id);
+    if (!response) {
+      throw new ServiceError("Resposta não encontrada", ServiceErrorType.NotFound, undefined, ErrorCode.RESPONSE_NOT_FOUND);
+    }
+    return response;
+  }
+
+  private extractValue(input: unknown): string {
+    const raw = typeof input === "string" ? input : (input as { value?: unknown } | null)?.value;
+    if (typeof raw !== "string" || raw.trim() === "" || raw.length > 100) {
+      throw new ServiceError("Resposta inválida", ServiceErrorType.BadRequest, undefined, ErrorCode.RESPONSE_INVALID_PAYLOAD);
+    }
+    return raw.trim().normalize("NFC");
+  }
+
+  private buildScoredAnswers(rawOne: unknown, rawTwo: unknown) {
+    const key = BODY_WATER_LOSS_ANSWER_KEY;
+    const valueOne = this.extractValue(rawOne);
+    const valueTwo = this.extractValue(rawTwo);
+    const one = { value: valueOne, weight: valueOne === key.answerOne.value ? key.answerOne.weight : 0 };
+    const two = { value: valueTwo, weight: valueTwo === key.answerTwo.value ? key.answerTwo.weight : 0 };
+    return { answerOne: one, answerTwo: two, score: one.weight + two.weight };
+  }
+
+  async createBodyWaterLossResponse(input: BodyWaterLossResponseInput) {
+    if (!input.pin) {
+      throw new ServiceError(
+        "PIN do experimento é obrigatório",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.RESPONSE_PIN_REQUIRED,
+      );
+    }
+
+    const experiment = await this.findExperimentByPinAndType(input.pin);
+    this.assertAcceptingResponses(experiment);
+
+    const { answerOne, answerTwo, ...rest } = input;
+    const scored = this.buildScoredAnswers(answerOne, answerTwo);
+    const toSave: BodyWaterLossResponseTypes = { ...rest, ...scored };
 
     return this.bodyWaterLossResponseRepository.create(toSave);
   }
-  async getBodyWaterLossResponseByPin(pin: string) {
+
+  async getBodyWaterLossResponseByPin(pin: string, requesterId: string) {
+    await this.assertExperimentOwner(pin, requesterId);
     return this.bodyWaterLossResponseRepository.findByPin(pin);
   }
-  async getBodyWaterLossResponseById(id: string) {
-    return this.bodyWaterLossResponseRepository.findById(id);
-  }
-  async updateBodyWaterLossResponse(
-    id: string,
-    response: BodyWaterLossResponseTypes,
-  ) {
-    const score =
-      Number(response.answerOne?.weight || 0) +
-      Number(response.answerTwo?.weight || 0);
-    const toSave: BodyWaterLossResponseTypes = { ...response, score };
-    return this.bodyWaterLossResponseRepository.update(id, toSave);
-  }
-  async deleteBodyWaterLossResponse(id: string) {
+
+  async deleteBodyWaterLossResponse(id: string, requesterId: string) {
+    const response = await this.findResponseOrFail(id);
+    await this.assertExperimentOwner(response.pin, requesterId);
     return this.bodyWaterLossResponseRepository.delete(id);
   }
 
   async getBodyWaterLossChartByPin(pin: string): Promise<BodyWaterLossChartDataTypes[]> {
+    await this.findExperimentByPinAndType(pin);
+
     const responses = await this.bodyWaterLossResponseRepository.findByPin(pin);
     const responseList = responses || [];
 

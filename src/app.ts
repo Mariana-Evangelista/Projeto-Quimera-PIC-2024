@@ -25,7 +25,7 @@ const port = process.env.PORT || 8000;
 app.use(cors());
 
 //middleware
-app.use(express.json());
+app.use(express.json({ limit: "10kb" }));
 
 //conexão banco
 connectMongoDB();

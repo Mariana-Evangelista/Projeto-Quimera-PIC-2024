@@ -38,7 +38,7 @@ export function registerExperimentNamespace(io: SocketIOServer): Namespace {
 
           const experimentService =
             container.resolve<ExperimentServiceTypes>("ExperimentService");
-          const experiment = await experimentService.getExperimentByPin(
+          const experiment = await experimentService.getExperimentByPinForParticipant(
             pin.trim(),
             slug,
           );
