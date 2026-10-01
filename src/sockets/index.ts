@@ -4,10 +4,16 @@ import {
   registerExperimentNamespace,
   emitExperimentUpdate,
 } from "./experiment.socket";
+import {
+  registerChartNamespace,
+  emitChartUpdate,
+} from "./chart.socket";
 
 export interface SocketsInitResult {
   io: SocketIOServer;
   experimentsNamespace: Namespace;
+  bodyWaterLossChartNamespace: Namespace;
+  glycemicControlChartNamespace: Namespace;
 }
 
 export function initSockets(httpServer: HttpServer): SocketsInitResult {
@@ -23,7 +29,25 @@ export function initSockets(httpServer: HttpServer): SocketsInitResult {
 
   const experimentsNamespace = registerExperimentNamespace(io);
 
-  return { io, experimentsNamespace };
+  const bodyWaterLossChartNamespace = registerChartNamespace(
+    io,
+    "/body-water-loss-chart",
+    "body-water-loss",
+  );
+
+  const glycemicControlChartNamespace = registerChartNamespace(
+    io,
+    "/glycemic-control-chart",
+    "glycemic-control",
+  );
+
+  return {
+    io,
+    experimentsNamespace,
+    bodyWaterLossChartNamespace,
+    glycemicControlChartNamespace,
+  };
 }
 
 export { emitExperimentUpdate };
+export { emitChartUpdate };

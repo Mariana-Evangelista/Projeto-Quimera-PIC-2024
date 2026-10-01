@@ -9,6 +9,7 @@ import ServiceError, {
 import { ErrorCode } from "../../../shared/errors/errorCodes";
 import { Experiment } from "../../experiment/schemas/experiment.schemas";
 import { GLYCEMIC_CONTROL_ANSWER_KEY } from "../constants/glycemic-control-response.answer-key";
+import { emitChartUpdate } from "../../../sockets";
 
 @injectable()
 export class GlycemicControlResponseService implements GlycemicControlResponseServiceTypes {
@@ -112,7 +113,18 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
     const scored = this.buildScoredAnswers(answers);
     const toSave: GlycemicControlResponseTypes = { ...rest, ...scored };
 
-    return this.glycemicControlResponseRepository.create(toSave);
+    const createdResponse =
+      await this.glycemicControlResponseRepository.create(toSave);
+
+    const chart = await this.getGlycemicControlChartByPin(input.pin);
+
+    emitChartUpdate(
+      "glycemic-control",
+      experiment._id.toString(),
+      chart,
+    );
+
+    return createdResponse;
   }
 
   async getGlycemicControlResponseByPin(pin: string, requesterId: string) {
