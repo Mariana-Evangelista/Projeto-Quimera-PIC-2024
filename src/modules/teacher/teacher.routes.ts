@@ -15,7 +15,6 @@ export function TeacherRoutes() {
     authMiddleware,
     teacherController.getTeacherById.bind(teacherController),
   );
-  router.get("/", teacherController.getAllTeachers.bind(teacherController));
   router.put(
     "/:id",
     authMiddleware,

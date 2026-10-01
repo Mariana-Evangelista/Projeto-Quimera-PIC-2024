@@ -35,6 +35,31 @@ export class ExperimentService implements ExperimentServiceTypes {
       );
     }
 
+    if (typeof experiment.type !== "string") {
+      throw new ServiceError(
+        "Campo 'type' deve ser string",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.BAD_REQUEST,
+      );
+    }
+    if (typeof experiment.university !== "string") {
+      throw new ServiceError(
+        "Campo 'university' deve ser string",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.BAD_REQUEST,
+      );
+    }
+    if (typeof experiment.class !== "string") {
+      throw new ServiceError(
+        "Campo 'class' deve ser string",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.BAD_REQUEST,
+      );
+    }
+
     const validTypes: ExperimentTypes["type"][] = [
       "body-water-loss",
       "glycemic-control",

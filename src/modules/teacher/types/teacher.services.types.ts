@@ -3,7 +3,6 @@ import { TeacherTypes } from "./teacher.schemas.types";
 export interface TeacherServiceTypes {
   createTeacher(teacher: TeacherTypes): Promise<TeacherTypes>;
   getTeacherById(id: string): Promise<TeacherTypes | null>;
-  getAllTeacher(): Promise<TeacherTypes[]>;
   updateTeacher(
     id: string,
     teacher: TeacherTypes,

@@ -1,16 +1,12 @@
 import { BodyWaterLossResponseTypes } from "./body-water-loss-response.schemas.types";
 import { BodyWaterLossChartDataTypes } from "./body-water-loss-response.schemas.types";
+import { BodyWaterLossResponseInput } from "./body-water-loss-response.schemas.types";
 
 export interface BodyWaterLossResponseServiceTypes {
   createBodyWaterLossResponse(
-    response: BodyWaterLossResponseTypes,
+    response: BodyWaterLossResponseInput,
   ): Promise<BodyWaterLossResponseTypes>;
-  getBodyWaterLossResponseByPin(pin: string): Promise<BodyWaterLossResponseTypes[] | null>;
-  getBodyWaterLossResponseById(id: string): Promise<BodyWaterLossResponseTypes | null>;
-  updateBodyWaterLossResponse(
-    id: string,
-    response: BodyWaterLossResponseTypes,
-  ): Promise<BodyWaterLossResponseTypes | null>;
-  deleteBodyWaterLossResponse(id: string): Promise<void>;
+  getBodyWaterLossResponseByPin(pin: string, requesterId: string): Promise<BodyWaterLossResponseTypes[] | null>;
+  deleteBodyWaterLossResponse(id: string, requesterId: string): Promise<void>;
   getBodyWaterLossChartByPin(pin: string): Promise<BodyWaterLossChartDataTypes[]>;
 }

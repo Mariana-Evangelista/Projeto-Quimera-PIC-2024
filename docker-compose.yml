@@ -4,7 +4,7 @@ services:
     container_name: mongodb
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
@@ -12,11 +12,12 @@ services:
       - mongo-data:/data/db
 
   mongo-express:
-    image: mongo-express:latest
+    image: mongo-express:1.0.2
     container_name: mongo-express
-    restart: always
+    profiles: ["dev"]
+    restart: "no"
     ports:
-      - "8081:8081"
+      - "127.0.0.1:8081:8081"
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME}
       ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD}

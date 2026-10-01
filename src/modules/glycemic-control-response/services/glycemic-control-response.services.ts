@@ -1,12 +1,14 @@
 import { inject, injectable } from "tsyringe";
+import { isValidObjectId } from "mongoose";
 import { GlycemicControlResponseServiceTypes } from "../types/glycemic-control-response.services.types";
 import { GlycemicControlResponseRepositoryTypes } from "../types/glycemic-control-response.repositories.types";
-import { GlycemicControlResponseTypes, GlycemicControlChartDataTypes } from "../types/glycemic-control-response.schemas.types";
+import { GlycemicControlResponseTypes, GlycemicControlResponseInput, GlycemicControlChartDataTypes } from "../types/glycemic-control-response.schemas.types";
 import ServiceError, {
   ServiceErrorType,
 } from "../../../shared/errors/ServiceError";
 import { ErrorCode } from "../../../shared/errors/errorCodes";
 import { Experiment } from "../../experiment/schemas/experiment.schemas";
+import { GLYCEMIC_CONTROL_ANSWER_KEY } from "../constants/glycemic-control-response.answer-key";
 
 @injectable()
 export class GlycemicControlResponseService implements GlycemicControlResponseServiceTypes {
@@ -31,18 +33,15 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
     return experiment;
   }
 
-  async createGlycemicControlResponse(response: GlycemicControlResponseTypes) {
-    if (!response.pin) {
+  private assertAcceptingResponses(experiment: { status: string }) {
+    if (experiment.status === "Não iniciado") {
       throw new ServiceError(
-        "PIN do experimento é obrigatório",
-        ServiceErrorType.BadRequest,
+        "O experimento ainda não foi liberado para envio",
+        ServiceErrorType.Conflict,
         undefined,
-        ErrorCode.RESPONSE_PIN_REQUIRED,
+        ErrorCode.EXPERIMENT_NOT_STARTED,
       );
     }
-
-    const experiment = await this.findExperimentByPinAndType(response.pin);
-
     if (experiment.status === "Finalizado") {
       throw new ServiceError(
         "Experimento finalizado não aceita novas respostas",
@@ -51,35 +50,79 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
         ErrorCode.EXPERIMENT_FINALIZED,
       );
     }
+  }
 
-    const score = response.answers
-      ? response.answers.reduce((sum, ans) => sum + Number(ans?.weight || 0), 0)
-      : 0;
-    const toSave: GlycemicControlResponseTypes = { ...response, score };
+  private async assertExperimentOwner(pin: string, requesterId: string) {
+    const experiment = await this.findExperimentByPinAndType(pin);
+    if (String(experiment.teacher) !== requesterId) {
+      throw new ServiceError(
+        "Operação não autorizada",
+        ServiceErrorType.Forbidden,
+        undefined,
+        ErrorCode.EXPERIMENT_FORBIDDEN,
+      );
+    }
+    return experiment;
+  }
+
+  private async findResponseOrFail(id: string) {
+    if (!isValidObjectId(id)) {
+      throw new ServiceError("ID inválido", ServiceErrorType.BadRequest, undefined, ErrorCode.BAD_REQUEST);
+    }
+    const response = await this.glycemicControlResponseRepository.findById(id);
+    if (!response) {
+      throw new ServiceError("Resposta não encontrada", ServiceErrorType.NotFound, undefined, ErrorCode.RESPONSE_NOT_FOUND);
+    }
+    return response;
+  }
+
+  private buildScoredAnswers(answers: unknown) {
+    const total = Object.keys(GLYCEMIC_CONTROL_ANSWER_KEY).length;
+    if (!Array.isArray(answers) || answers.length !== total) {
+      throw new ServiceError(`É necessário responder as ${total} questões`, ServiceErrorType.BadRequest, undefined, ErrorCode.RESPONSE_INVALID_PAYLOAD);
+    }
+    const seen = new Set<number>();
+    const scored = answers.map((a) => {
+      const question = Number(a?.question);
+      const key = Number.isInteger(question) ? GLYCEMIC_CONTROL_ANSWER_KEY[question] : undefined;
+      const answer = typeof a?.answer === "string" ? a.answer.trim() : "";
+      if (!key || !answer || answer.length > 100 || seen.has(question)) {
+        throw new ServiceError("Respostas inválidas", ServiceErrorType.BadRequest, undefined, ErrorCode.RESPONSE_INVALID_PAYLOAD);
+      }
+      seen.add(question);
+      return { question, answer, weight: answer === key.value ? key.weight : 0 };
+    });
+    return { answers: scored, score: scored.reduce((sum, a) => sum + a.weight, 0) };
+  }
+
+  async createGlycemicControlResponse(input: GlycemicControlResponseInput) {
+    if (!input.pin) {
+      throw new ServiceError(
+        "PIN do experimento é obrigatório",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.RESPONSE_PIN_REQUIRED,
+      );
+    }
+
+    const experiment = await this.findExperimentByPinAndType(input.pin);
+    this.assertAcceptingResponses(experiment);
+
+    const { answers, ...rest } = input;
+    const scored = this.buildScoredAnswers(answers);
+    const toSave: GlycemicControlResponseTypes = { ...rest, ...scored };
 
     return this.glycemicControlResponseRepository.create(toSave);
   }
 
-  async getGlycemicControlResponseByPin(pin: string) {
+  async getGlycemicControlResponseByPin(pin: string, requesterId: string) {
+    await this.assertExperimentOwner(pin, requesterId);
     return this.glycemicControlResponseRepository.findByPin(pin);
   }
 
-  async getGlycemicControlResponseById(id: string) {
-    return this.glycemicControlResponseRepository.findById(id);
-  }
-
-  async updateGlycemicControlResponse(
-    id: string,
-    response: GlycemicControlResponseTypes,
-  ) {
-    const score = response.answers
-      ? response.answers.reduce((sum, ans) => sum + Number(ans?.weight || 0), 0)
-      : 0;
-    const toSave: GlycemicControlResponseTypes = { ...response, score };
-    return this.glycemicControlResponseRepository.update(id, toSave);
-  }
-
-  async deleteGlycemicControlResponse(id: string) {
+  async deleteGlycemicControlResponse(id: string, requesterId: string) {
+    const response = await this.findResponseOrFail(id);
+    await this.assertExperimentOwner(response.pin, requesterId);
     return this.glycemicControlResponseRepository.delete(id);
   }
 

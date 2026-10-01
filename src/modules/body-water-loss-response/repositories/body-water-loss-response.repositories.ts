@@ -15,11 +15,6 @@ export class BodyWaterLossResponseRepository implements BodyWaterLossResponseRep
   async findById(id: string) {
     return await BodyWaterLossResponse.findById(id);
   }
-  async update(id: string, response: BodyWaterLossResponseTypes) {
-    return await BodyWaterLossResponse.findByIdAndUpdate(id, response, {
-      new: true,
-    });
-  }
   async delete(id: string) {
     await BodyWaterLossResponse.findByIdAndDelete(id);
   }

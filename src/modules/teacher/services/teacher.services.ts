@@ -69,10 +69,6 @@ export class TeacherService implements TeacherServiceTypes {
       );
     return this.sanitizeTeacher(teacher);
   }
-  async getAllTeacher() {
-    const teachers = await this.teacherRepository.findAll();
-    return teachers.map((teacher) => this.sanitizeTeacher(teacher));
-  }
   async updateTeacher(id: string, teacher: TeacherTypes) {
     const existing = await this.teacherRepository.findById(id);
     if (!existing)
