@@ -20,7 +20,12 @@ export function ExperimentRoutes() {
   );
   router.get(
     "/pin/:pin/:slug",
+    authMiddleware,
     experimentController.getExperimentByPin.bind(experimentController),
+  );
+  router.get(
+    "/participant/pin/:pin/:slug",
+    experimentController.getExperimentByPinForParticipant.bind(experimentController),
   );
 
   router.get(

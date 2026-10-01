@@ -21,6 +21,7 @@ export class ExperimentRepository implements ExperimentRepositoryTypes {
   async update(id: string, experiment: ExperimentTypes) {
     return await Experiment.findByIdAndUpdate(id, experiment, {
       new: true,
+      runValidators: true,
     });
   }
   async delete(id: string) {

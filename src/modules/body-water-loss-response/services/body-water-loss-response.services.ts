@@ -15,18 +15,9 @@ export class BodyWaterLossResponseService implements BodyWaterLossResponseServic
     private bodyWaterLossResponseRepository: BodyWaterLossResponseRepositoryTypes,
   ) {}
 
-  async createBodyWaterLossResponse(response: BodyWaterLossResponseTypes) {
-    if (!response.pin) {
-      throw new ServiceError(
-        "PIN do experimento é obrigatório",
-        ServiceErrorType.BadRequest,
-        undefined,
-        ErrorCode.RESPONSE_PIN_REQUIRED,
-      );
-    }
-
+  private async findExperimentByPinAndType(pin: string) {
     const experiment = await Experiment.findOne({
-      pin: response.pin,
+      pin,
       type: "body-water-loss",
     });
     if (!experiment) {
@@ -37,6 +28,29 @@ export class BodyWaterLossResponseService implements BodyWaterLossResponseServic
         ErrorCode.EXPERIMENT_NOT_FOUND,
       );
     }
+    return experiment;
+  }
+
+  async createBodyWaterLossResponse(response: BodyWaterLossResponseTypes) {
+    if (!response.pin) {
+      throw new ServiceError(
+        "PIN do experimento é obrigatório",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.RESPONSE_PIN_REQUIRED,
+      );
+    }
+
+    const experiment = await this.findExperimentByPinAndType(response.pin);
+
+    if (experiment.status === "Finalizado") {
+      throw new ServiceError(
+        "Experimento finalizado não aceita novas respostas",
+        ServiceErrorType.Conflict,
+        undefined,
+        ErrorCode.EXPERIMENT_FINALIZED,
+      );
+    }
 
     const score =
       Number(response.answerOne?.weight || 0) +
@@ -45,12 +59,15 @@ export class BodyWaterLossResponseService implements BodyWaterLossResponseServic
 
     return this.bodyWaterLossResponseRepository.create(toSave);
   }
+
   async getBodyWaterLossResponseByPin(pin: string) {
     return this.bodyWaterLossResponseRepository.findByPin(pin);
   }
+
   async getBodyWaterLossResponseById(id: string) {
     return this.bodyWaterLossResponseRepository.findById(id);
   }
+
   async updateBodyWaterLossResponse(
     id: string,
     response: BodyWaterLossResponseTypes,
@@ -61,11 +78,14 @@ export class BodyWaterLossResponseService implements BodyWaterLossResponseServic
     const toSave: BodyWaterLossResponseTypes = { ...response, score };
     return this.bodyWaterLossResponseRepository.update(id, toSave);
   }
+
   async deleteBodyWaterLossResponse(id: string) {
     return this.bodyWaterLossResponseRepository.delete(id);
   }
 
   async getBodyWaterLossChartByPin(pin: string): Promise<BodyWaterLossChartDataTypes[]> {
+    await this.findExperimentByPinAndType(pin);
+
     const responses = await this.bodyWaterLossResponseRepository.findByPin(pin);
     const responseList = responses || [];
 

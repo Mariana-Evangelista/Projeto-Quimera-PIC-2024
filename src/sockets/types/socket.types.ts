@@ -2,6 +2,7 @@ export interface ExperimentUpdatedPayload {
   experimentId: string;
   liberateSend: boolean;
   liberateResult: boolean;
+  status: "Não iniciado" | "Em Progresso" | "Finalizado";
 }
 
 export interface JoinPayload {

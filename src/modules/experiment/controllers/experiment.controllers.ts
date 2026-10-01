@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import { randomBytes } from "crypto";
 import { CustomRequest } from "../../../middlewares/authMiddleware";
 import { ExperimentServiceTypes } from "../types/experiment.services.types";
-import { ExperimentTypes } from "../types/experiment.schemas.types";
+import { ExperimentTypes, UpdateExperimentTypes } from "../types/experiment.schemas.types";
 import { asyncHandler } from "../../../shared/asyncHandler";
 import ServiceError, { ServiceErrorType } from "../../../shared/errors/ServiceError";
 import { ErrorCode } from "../../../shared/errors/errorCodes";
@@ -37,6 +37,7 @@ export class ExperimentController {
         liberateResult: false,
         responsesNumber: 0,
         createdAt: new Date(),
+        status: "Não iniciado",
       };
 
       const newExperiment =
@@ -45,18 +46,43 @@ export class ExperimentController {
     },
   );
 
-  getExperimentById = asyncHandler(async (req: Request, res: Response) => {
+  getExperimentById = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { id } = req.params;
+    const requesterId = req.user?.id;
+    if (!requesterId)
+      throw new ServiceError(
+        "ID do professor não encontrado",
+        ServiceErrorType.Unauthorized,
+        undefined,
+        ErrorCode.AUTH_UNAUTHORIZED,
+      );
     const experiment =
-      await this.experimentService.getExperimentById(id);
+      await this.experimentService.getExperimentById(id, requesterId);
     res.status(200).json(experiment);
   });
 
   getExperimentByPin = asyncHandler(
+    async (req: CustomRequest, res: Response) => {
+      const { pin, slug } = req.params;
+      const requesterId = req.user?.id;
+      if (!requesterId)
+        throw new ServiceError(
+          "ID do professor não encontrado",
+          ServiceErrorType.Unauthorized,
+          undefined,
+          ErrorCode.AUTH_UNAUTHORIZED,
+        );
+      const experiment =
+        await this.experimentService.getExperimentByPin(pin, slug, requesterId);
+      res.status(200).json(experiment);
+    },
+  );
+
+  getExperimentByPinForParticipant = asyncHandler(
     async (req: Request, res: Response) => {
       const { pin, slug } = req.params;
       const experiment =
-        await this.experimentService.getExperimentByPin(pin, slug);
+        await this.experimentService.getExperimentByPinForParticipant(pin, slug);
       res.status(200).json(experiment);
     },
   );
@@ -74,6 +100,7 @@ export class ExperimentController {
       res.status(200).json(experiments);
     },
   );
+
   updateExperiment = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { id } = req.params;
     const requesterId = req.user?.id;
@@ -84,38 +111,72 @@ export class ExperimentController {
         undefined,
         ErrorCode.AUTH_UNAUTHORIZED,
       );
-    const { liberateSend, liberateResult } = req.body;
 
-    const existingExperiment =
-      await this.experimentService.getExperimentById(id);
-
-    if (!existingExperiment)
+    const body = req.body;
+    if (!body || typeof body !== "object") {
       throw new ServiceError(
-        "Experimento não encontrado",
-        ServiceErrorType.NotFound,
+        "Body inválido",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.BAD_REQUEST,
       );
+    }
 
-    const updatedData = {
-      pin: existingExperiment.pin,
-      teacher: existingExperiment.teacher,
-      type: existingExperiment.type,
-      university: existingExperiment.university,
-      class: existingExperiment.class,
-      liberateSend:
-        liberateSend !== undefined
-          ? liberateSend
-          : existingExperiment.liberateSend,
-      liberateResult:
-        liberateResult !== undefined
-          ? liberateResult
-          : existingExperiment.liberateResult,
-      responsesNumber: existingExperiment.responsesNumber,
-      createdAt: existingExperiment.createdAt,
-    };
+    const allowedFields = ["university", "class", "liberateSend", "liberateResult"];
+    const receivedFields = Object.keys(body);
+    const invalidFields = receivedFields.filter((field) => !allowedFields.includes(field));
+
+    if (invalidFields.length > 0) {
+      throw new ServiceError(
+        `Campos não permitidos: ${invalidFields.join(", ")}`,
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.EXPERIMENT_INVALID_UPDATE_FIELD,
+      );
+    }
+
+    if (body.university !== undefined && typeof body.university !== "string") {
+      throw new ServiceError(
+        "Campo 'university' deve ser string",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.BAD_REQUEST,
+      );
+    }
+    if (body.class !== undefined && typeof body.class !== "string") {
+      throw new ServiceError(
+        "Campo 'class' deve ser string",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.BAD_REQUEST,
+      );
+    }
+    if (body.liberateSend !== undefined && typeof body.liberateSend !== "boolean") {
+      throw new ServiceError(
+        "Campo 'liberateSend' deve ser boolean",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.BAD_REQUEST,
+      );
+    }
+    if (body.liberateResult !== undefined && typeof body.liberateResult !== "boolean") {
+      throw new ServiceError(
+        "Campo 'liberateResult' deve ser boolean",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.BAD_REQUEST,
+      );
+    }
+
+    const updateData: UpdateExperimentTypes = {};
+    if (body.university !== undefined) updateData.university = body.university;
+    if (body.class !== undefined) updateData.class = body.class;
+    if (body.liberateSend !== undefined) updateData.liberateSend = body.liberateSend;
+    if (body.liberateResult !== undefined) updateData.liberateResult = body.liberateResult;
 
     const updatedExperiment =
-      await this.experimentService.updateExperiment(id, updatedData, requesterId);
-    
+      await this.experimentService.updateExperiment(id, updateData, requesterId);
+
     if (updatedExperiment) {
       const experimentId = (updatedExperiment as any)._id?.toString() || (updatedExperiment as any).id?.toString();
       if (experimentId) {
@@ -123,6 +184,7 @@ export class ExperimentController {
           experimentId,
           liberateSend: updatedExperiment.liberateSend,
           liberateResult: updatedExperiment.liberateResult,
+          status: updatedExperiment.status,
         });
       }
     }

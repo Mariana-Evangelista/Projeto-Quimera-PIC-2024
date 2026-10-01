@@ -15,18 +15,9 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
     private glycemicControlResponseRepository: GlycemicControlResponseRepositoryTypes,
   ) {}
 
-  async createGlycemicControlResponse(response: GlycemicControlResponseTypes) {
-    if (!response.pin) {
-      throw new ServiceError(
-        "PIN do experimento é obrigatório",
-        ServiceErrorType.BadRequest,
-        undefined,
-        ErrorCode.RESPONSE_PIN_REQUIRED,
-      );
-    }
-
+  private async findExperimentByPinAndType(pin: string) {
     const experiment = await Experiment.findOne({
-      pin: response.pin,
+      pin,
       type: "glycemic-control",
     });
     if (!experiment) {
@@ -37,6 +28,29 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
         ErrorCode.EXPERIMENT_NOT_FOUND,
       );
     }
+    return experiment;
+  }
+
+  async createGlycemicControlResponse(response: GlycemicControlResponseTypes) {
+    if (!response.pin) {
+      throw new ServiceError(
+        "PIN do experimento é obrigatório",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.RESPONSE_PIN_REQUIRED,
+      );
+    }
+
+    const experiment = await this.findExperimentByPinAndType(response.pin);
+
+    if (experiment.status === "Finalizado") {
+      throw new ServiceError(
+        "Experimento finalizado não aceita novas respostas",
+        ServiceErrorType.Conflict,
+        undefined,
+        ErrorCode.EXPERIMENT_FINALIZED,
+      );
+    }
 
     const score = response.answers
       ? response.answers.reduce((sum, ans) => sum + Number(ans?.weight || 0), 0)
@@ -45,12 +59,15 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
 
     return this.glycemicControlResponseRepository.create(toSave);
   }
+
   async getGlycemicControlResponseByPin(pin: string) {
     return this.glycemicControlResponseRepository.findByPin(pin);
   }
+
   async getGlycemicControlResponseById(id: string) {
     return this.glycemicControlResponseRepository.findById(id);
   }
+
   async updateGlycemicControlResponse(
     id: string,
     response: GlycemicControlResponseTypes,
@@ -61,11 +78,14 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
     const toSave: GlycemicControlResponseTypes = { ...response, score };
     return this.glycemicControlResponseRepository.update(id, toSave);
   }
+
   async deleteGlycemicControlResponse(id: string) {
     return this.glycemicControlResponseRepository.delete(id);
   }
 
   async getGlycemicControlChartByPin(pin: string): Promise<GlycemicControlChartDataTypes[]> {
+    await this.findExperimentByPinAndType(pin);
+
     const responses = await this.glycemicControlResponseRepository.findByPin(pin);
     const responseList = responses || [];
 
