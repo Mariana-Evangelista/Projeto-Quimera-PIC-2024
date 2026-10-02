@@ -2,13 +2,14 @@ import { Router } from "express";
 import { container } from "tsyringe";
 import { BodyWaterLossResponseController } from "./controllers/body-water-loss-response.controllers";
 import { authMiddleware } from "../../middlewares/authMiddleware";
+import { responseSubmissionRateLimiter } from "../../middlewares/rateLimiters";
 
 export function BodyWaterLossResponseRoutes() {
   const router = Router();
 
   const controller = container.resolve(BodyWaterLossResponseController);
 
-  router.post("/", controller.createBodyWaterLossResponse.bind(controller));
+  router.post("/", responseSubmissionRateLimiter, controller.createBodyWaterLossResponse.bind(controller));
 
   router.get(
     "/analytics/:pin",

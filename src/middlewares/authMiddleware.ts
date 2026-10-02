@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { JwtPayload, verify } from "jsonwebtoken";
 import ServiceError, { ServiceErrorType } from "../shared/errors/ServiceError";
 import { ErrorCode } from "../shared/errors/errorCodes";
+import { getJwtSecret } from "../shared/env";
 
 export type CustomRequest = Request & { user?: JwtPayload & { id: string } };
 
@@ -22,7 +23,7 @@ export function authMiddleware(
   }
 
   try {
-    const decoded = verify(token, process.env.JWT_SECRET as string);
+    const decoded = verify(token, getJwtSecret(), { algorithms: ["HS256"] });
     req.user = decoded as CustomRequest["user"];
     next();
   } catch (error) {
