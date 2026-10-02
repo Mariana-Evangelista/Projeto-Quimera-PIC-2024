@@ -25,6 +25,7 @@ export function initSockets(httpServer: HttpServer): SocketsInitResult {
           : process.env.CORS_ORIGIN || true,
       credentials: true,
     },
+    maxHttpBufferSize: 10_000,
   });
 
   const experimentsNamespace = registerExperimentNamespace(io);

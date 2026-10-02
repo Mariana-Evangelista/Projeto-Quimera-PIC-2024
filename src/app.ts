@@ -16,8 +16,16 @@ import { config } from "dotenv";
 
 import errorHandler from "./middlewares/errorHandler";
 import { initSockets } from "./sockets";
+import { validateEnv } from "./shared/env";
 
 config();
+
+const envErrors = validateEnv();
+if (envErrors.length > 0) {
+  console.error("Erro de configuração:");
+  envErrors.forEach((err) => console.error(`  - ${err}`));
+  process.exit(1);
+}
 
 const app = express();
 const port = process.env.PORT || 8000;
@@ -26,9 +34,6 @@ app.use(cors());
 
 //middleware
 app.use(express.json({ limit: "10kb" }));
-
-//conexão banco
-connectMongoDB();
 
 //rotas
 
@@ -43,6 +48,53 @@ app.use("/glycemic-control-response", GlycemicControlResponseRoutes());
 app.use(errorHandler);
 
 const httpServer = createServer(app);
-initSockets(httpServer);
+const { io } = initSockets(httpServer);
 
-httpServer.listen(port, () => console.log(`Server is running on port ${port}`));
+async function bootstrap() {
+  try {
+    await connectMongoDB();
+
+    httpServer.listen(port, () => console.log(`Server is running on port ${port}`));
+  } catch (error) {
+    console.error("Erro ao iniciar o servidor:", error);
+    process.exit(1);
+  }
+}
+
+let isShuttingDown = false;
+
+async function shutdown(signal: string) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  console.log(`${signal} recebido, encerrando graciosamente...`);
+
+  const forceExit = setTimeout(() => {
+    console.error("Encerramento forçado após timeout");
+    process.exit(1);
+  }, 10000);
+  forceExit.unref();
+
+  try {
+    await new Promise<void>((resolve) => {
+      io.close(() => {
+        console.log("Socket.IO fechado");
+        resolve();
+      });
+    });
+
+    const mongoose = (await import("mongoose")).default;
+    await mongoose.disconnect();
+    console.log("MongoDB desconectado");
+
+    process.exit(0);
+  } catch (error) {
+    console.error("Erro durante encerramento:", error);
+    process.exit(1);
+  }
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+bootstrap();

@@ -9,6 +9,7 @@ import { TeacherRepositoryTypes } from "../../teacher/types/teacher.repositories
 import { TeacherTypes } from "../../teacher/types/teacher.schemas.types";
 import ServiceError, { ServiceErrorType } from "../../../shared/errors/ServiceError";
 import { ErrorCode } from "../../../shared/errors/errorCodes";
+import { getJwtSecret } from "../../../shared/env";
 
 @injectable()
 export class AuthService implements AuthServiceTypes {
@@ -41,7 +42,8 @@ export class AuthService implements AuthServiceTypes {
       );
     }
 
-    const token = sign({ id: teacher._id }, process.env.JWT_SECRET as string, {
+    const token = sign({ id: teacher._id }, getJwtSecret(), {
+      algorithm: "HS256",
       expiresIn: "1d",
     });
 
