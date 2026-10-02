@@ -54,7 +54,9 @@ async function bootstrap() {
   try {
     await connectMongoDB();
 
-    httpServer.listen(port, () => console.log(`Server is running on port ${port}`));
+    httpServer.listen(port, () =>
+      console.log(`Server is running on port ${port}`),
+    );
   } catch (error) {
     console.error("Erro ao iniciar o servidor:", error);
     process.exit(1);
@@ -67,7 +69,7 @@ async function shutdown(signal: string) {
   if (isShuttingDown) return;
   isShuttingDown = true;
 
-  console.log(`${signal} recebido, encerrando graciosamente...`);
+  console.log(`${signal} recebido, encerrando com segurança...`);
 
   const forceExit = setTimeout(() => {
     console.error("Encerramento forçado após timeout");
