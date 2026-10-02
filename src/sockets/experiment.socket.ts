@@ -40,7 +40,7 @@ export function registerExperimentNamespace(io: SocketIOServer): Namespace {
         try {
           const { pin, slug } = payload ?? ({} as JoinPayload);
 
-          if (!pin || typeof pin !== "string" || pin.trim() === "" || pin.length > 32) {
+          if (!pin || typeof pin !== "string" || pin.trim() === "" || pin.length !== 6) {
             safeCallback({ success: false, error: "PIN inválido" });
             socket.emit(SOCKET_EVENTS.JOIN_REJECTED, {
               message: "PIN inválido ou experimento não encontrado",

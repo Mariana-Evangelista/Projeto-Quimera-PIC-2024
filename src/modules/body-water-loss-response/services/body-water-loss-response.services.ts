@@ -96,7 +96,7 @@ export class BodyWaterLossResponseService implements BodyWaterLossResponseServic
 
   async createBodyWaterLossResponse(input: BodyWaterLossResponseInput) {
     const pin = typeof input.pin === "string" ? input.pin.trim() : "";
-    if (!pin || pin.length > 32) {
+    if (!pin || pin.length !== 6) {
       throw new ServiceError(
         "PIN do experimento é obrigatório",
         ServiceErrorType.BadRequest,

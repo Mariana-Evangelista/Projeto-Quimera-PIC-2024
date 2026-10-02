@@ -12,7 +12,7 @@ const TEACHER_SIGNUP_MAX = 20;
 const RESPONSE_SUBMISSION_WINDOW_MS = 15 * 60 * 1000;
 const RESPONSE_SUBMISSION_MAX = 300;
 
-const PIN_MAX_LENGTH = 32;
+const PIN_LENGTH = 6;
 const EMAIL_MAX_LENGTH = 254;
 
 function createRateLimitHandler() {
@@ -43,7 +43,7 @@ function getLoginKey(req: Request): string {
 
 function getResponseSubmissionKey(req: Request): string {
   const pin = req.body?.pin;
-  if (typeof pin === "string" && pin.trim().length > 0 && pin.trim().length <= PIN_MAX_LENGTH) {
+  if (typeof pin === "string" && pin.trim().length === PIN_LENGTH) {
     return `submission:${pin.trim()}`;
   }
   return ipKeyGenerator(req.ip ?? "unknown");

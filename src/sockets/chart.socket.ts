@@ -46,7 +46,7 @@ export function registerChartNamespace(
         try {
           const { pin } = payload ?? ({} as ChartJoinPayload);
 
-          if (!pin || typeof pin !== "string" || pin.trim() === "" || pin.length > 32) {
+          if (!pin || typeof pin !== "string" || pin.trim() === "" || pin.length !== 6) {
             safeCallback({ success: false, error: "PIN inválido" });
             socket.emit(CHART_SOCKET_EVENTS.JOIN_REJECTED, {
               message: "PIN inválido ou experimento não encontrado",

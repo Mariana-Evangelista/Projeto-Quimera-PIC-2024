@@ -98,7 +98,7 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
 
   async createGlycemicControlResponse(input: GlycemicControlResponseInput) {
     const pin = typeof input.pin === "string" ? input.pin.trim() : "";
-    if (!pin || pin.length > 32) {
+    if (!pin || pin.length !== 6) {
       throw new ServiceError(
         "PIN do experimento é obrigatório",
         ServiceErrorType.BadRequest,
