@@ -5,6 +5,7 @@ export enum ServiceErrorType {
   Unauthorized = "Unauthorized",
   Forbidden = "Forbidden",
   Internal = "Internal",
+  TooManyRequests = "TooManyRequests",
 }
 
 export class ServiceError extends Error {
@@ -34,6 +35,8 @@ export class ServiceError extends Error {
         return 404;
       case ServiceErrorType.Conflict:
         return 409;
+      case ServiceErrorType.TooManyRequests:
+        return 429;
       case ServiceErrorType.Internal:
       default:
         return 500;
