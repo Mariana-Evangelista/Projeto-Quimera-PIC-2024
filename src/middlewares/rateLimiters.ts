@@ -38,7 +38,7 @@ function getLoginKey(req: Request): string {
   if (typeof email === "string" && email.trim().length > 0 && email.trim().length <= EMAIL_MAX_LENGTH) {
     return `login:${email.trim().toLowerCase()}`;
   }
-  return ipKeyGenerator(req.ip);
+  return ipKeyGenerator(req.ip ?? "unknown");
 }
 
 function getResponseSubmissionKey(req: Request): string {
@@ -46,7 +46,7 @@ function getResponseSubmissionKey(req: Request): string {
   if (typeof pin === "string" && pin.trim().length > 0 && pin.trim().length <= PIN_MAX_LENGTH) {
     return `submission:${pin.trim()}`;
   }
-  return ipKeyGenerator(req.ip);
+  return ipKeyGenerator(req.ip ?? "unknown");
 }
 
 export const loginRateLimiter = rateLimit({
