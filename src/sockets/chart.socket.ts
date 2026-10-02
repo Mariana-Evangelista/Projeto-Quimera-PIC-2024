@@ -9,6 +9,7 @@ import {
   JoinAckResponse,
   JoinRejectedPayload,
 } from "./types/socket.types";
+import { createJoinThrottle } from "./joinThrottle";
 
 type ChartExperimentType = "body-water-loss" | "glycemic-control";
 
@@ -24,6 +25,7 @@ export function registerChartNamespace(
 
   nsp.on("connection", (socket: Socket) => {
     let joinedExperimentId: string | null = null;
+    const joinThrottle = createJoinThrottle(10, 60_000);
 
     socket.on(
       CHART_SOCKET_EVENTS.JOIN,
@@ -31,13 +33,23 @@ export function registerChartNamespace(
         payload: ChartJoinPayload,
         callback?: (response: JoinAckResponse) => void,
       ) => {
+        const safeCallback = typeof callback === "function" ? callback : () => {};
+
+        if (!joinThrottle()) {
+          safeCallback({ success: false, error: "Muitas tentativas. Aguarde um instante." });
+          socket.emit(CHART_SOCKET_EVENTS.JOIN_REJECTED, {
+            message: "Muitas tentativas. Aguarde um instante.",
+          } as JoinRejectedPayload);
+          return;
+        }
+
         try {
           const { pin } = payload ?? ({} as ChartJoinPayload);
 
-          if (!pin || typeof pin !== "string" || pin.trim() === "") {
-            callback?.({ success: false, error: "PIN inválido" });
+          if (!pin || typeof pin !== "string" || pin.trim() === "" || pin.length > 32) {
+            safeCallback({ success: false, error: "PIN inválido" });
             socket.emit(CHART_SOCKET_EVENTS.JOIN_REJECTED, {
-              message: "PIN inválido",
+              message: "PIN inválido ou experimento não encontrado",
             } as JoinRejectedPayload);
             return;
           }
@@ -54,9 +66,9 @@ export function registerChartNamespace(
               experiment as { _id?: { toString(): string }; id?: string }
             )._id?.toString() || (experiment as { id?: string }).id?.toString();
           if (!experimentId) {
-            callback?.({ success: false, error: "Experimento inválido" });
+            safeCallback({ success: false, error: "Experimento inválido" });
             socket.emit(CHART_SOCKET_EVENTS.JOIN_REJECTED, {
-              message: "Experimento inválido",
+              message: "PIN inválido ou experimento não encontrado",
             } as JoinRejectedPayload);
             return;
           }
@@ -70,11 +82,12 @@ export function registerChartNamespace(
           socket.join(room);
           joinedExperimentId = experimentId;
 
-          callback?.({ success: true, experimentId });
+          safeCallback({ success: true, experimentId });
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : "Erro ao validar PIN";
-          callback?.({ success: false, error: errorMessage });
+          if (!(error instanceof Error)) {
+            console.error("[Socket.IO] Unexpected error in join:", error);
+          }
+          safeCallback({ success: false, error: "PIN inválido ou experimento não encontrado" });
           socket.emit(CHART_SOCKET_EVENTS.JOIN_REJECTED, {
             message: "PIN inválido ou experimento não encontrado",
           } as JoinRejectedPayload);
