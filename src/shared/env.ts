@@ -23,6 +23,20 @@ export function validateEnv(): string[] {
     }
   }
 
+  const corsOrigin = process.env.CORS_ORIGIN;
+  if (!corsOrigin) {
+    errors.push("CORS_ORIGIN é obrigatória");
+  } else {
+    try {
+      const url = new URL(corsOrigin);
+      if (!["http:", "https:"].includes(url.protocol)) {
+        errors.push("CORS_ORIGIN deve usar protocolo http:// ou https://");
+      }
+    } catch {
+      errors.push("CORS_ORIGIN deve ser uma URL válida (ex.: http://localhost:3000)");
+    }
+  }
+
   return errors;
 }
 

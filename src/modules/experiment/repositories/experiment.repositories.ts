@@ -30,9 +30,6 @@ export class ExperimentRepository implements ExperimentRepositoryTypes {
     const experiment = await Experiment.findById(id);
     if (!experiment) return;
 
-    // Apaga as respostas associadas ao PIN do experimento (filhos primeiro, pai por último)
-    // Ordem: respostas primeiro, experimento por último.
-    // Se falhar no meio, sobra experimento vazio e repetir o DELETE resolve, mas nunca ficam respostas órfãs.
     if (experiment.type === "body-water-loss") {
       await BodyWaterLossResponse.deleteMany({ pin: experiment.pin });
     } else if (experiment.type === "glycemic-control") {

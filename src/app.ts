@@ -30,7 +30,8 @@ if (envErrors.length > 0) {
 const app = express();
 const port = process.env.PORT || 8000;
 
-app.use(cors());
+const corsOrigin = process.env.CORS_ORIGIN!;
+app.use(cors({ origin: corsOrigin, credentials: true }));
 
 //middleware
 app.use(express.json({ limit: "10kb" }));

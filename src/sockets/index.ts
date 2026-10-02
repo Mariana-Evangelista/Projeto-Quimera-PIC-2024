@@ -17,12 +17,10 @@ export interface SocketsInitResult {
 }
 
 export function initSockets(httpServer: HttpServer): SocketsInitResult {
+  const corsOrigin = process.env.CORS_ORIGIN!;
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin:
-        process.env.CORS_ORIGIN === "true"
-          ? true
-          : process.env.CORS_ORIGIN || true,
+      origin: corsOrigin,
       credentials: true,
     },
     maxHttpBufferSize: 10_000,
