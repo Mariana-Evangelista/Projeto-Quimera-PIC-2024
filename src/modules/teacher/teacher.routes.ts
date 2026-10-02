@@ -3,13 +3,14 @@ import { Router } from "express";
 import { container } from "tsyringe";
 import { TeacherController } from "./controllers/teacher.controllers";
 import { authMiddleware } from "../../middlewares/authMiddleware";
+import { teacherSignupRateLimiter } from "../../middlewares/rateLimiters";
 
 export function TeacherRoutes() {
   const router = Router();
 
   const teacherController = container.resolve(TeacherController);
 
-  router.post("/", teacherController.createTeacher.bind(teacherController));
+  router.post("/", teacherSignupRateLimiter, teacherController.createTeacher.bind(teacherController));
   router.get(
     "/:id",
     authMiddleware,

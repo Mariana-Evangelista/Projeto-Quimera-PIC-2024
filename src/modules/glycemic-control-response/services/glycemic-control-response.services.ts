@@ -97,7 +97,8 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
   }
 
   async createGlycemicControlResponse(input: GlycemicControlResponseInput) {
-    if (!input.pin) {
+    const pin = typeof input.pin === "string" ? input.pin.trim() : "";
+    if (!pin || pin.length > 32) {
       throw new ServiceError(
         "PIN do experimento é obrigatório",
         ServiceErrorType.BadRequest,
@@ -106,17 +107,27 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
       );
     }
 
-    const experiment = await this.findExperimentByPinAndType(input.pin);
+    const studentName = typeof input.studentName === "string" ? input.studentName.trim() : "";
+    if (!studentName || studentName.length > 100) {
+      throw new ServiceError(
+        "Nome do aluno inválido",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.RESPONSE_INVALID_PAYLOAD,
+      );
+    }
+
+    const experiment = await this.findExperimentByPinAndType(pin);
     this.assertAcceptingResponses(experiment);
 
     const { answers, ...rest } = input;
     const scored = this.buildScoredAnswers(answers);
-    const toSave: GlycemicControlResponseTypes = { ...rest, ...scored };
+    const toSave: GlycemicControlResponseTypes = { ...rest, studentName, pin, ...scored };
 
     const createdResponse =
       await this.glycemicControlResponseRepository.create(toSave);
 
-    const chart = await this.getGlycemicControlChartByPin(input.pin);
+    const chart = await this.getGlycemicControlChartByPin(pin);
 
     emitChartUpdate(
       "glycemic-control",
