@@ -2,7 +2,7 @@ import { inject, injectable } from "tsyringe";
 import { isValidObjectId } from "mongoose";
 import { GlycemicControlResponseServiceTypes } from "../types/glycemic-control-response.services.types";
 import { GlycemicControlResponseRepositoryTypes } from "../types/glycemic-control-response.repositories.types";
-import { GlycemicControlResponseTypes, GlycemicControlResponseInput, GlycemicControlChartDataTypes } from "../types/glycemic-control-response.schemas.types";
+import { GlycemicControlResponseTypes, GlycemicControlResponseInput, GlycemicControlChartDataTypes, GlycemicControlAnalyticsResponse, GlycemicControlKPIs } from "../types/glycemic-control-response.schemas.types";
 import ServiceError, {
   ServiceErrorType,
 } from "../../../shared/errors/ServiceError";
@@ -97,7 +97,8 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
   }
 
   async createGlycemicControlResponse(input: GlycemicControlResponseInput) {
-    if (!input.pin) {
+    const pin = typeof input.pin === "string" ? input.pin.trim() : "";
+    if (!pin || pin.length !== 6) {
       throw new ServiceError(
         "PIN do experimento é obrigatório",
         ServiceErrorType.BadRequest,
@@ -106,22 +107,33 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
       );
     }
 
-    const experiment = await this.findExperimentByPinAndType(input.pin);
+    const studentName = typeof input.studentName === "string" ? input.studentName.trim() : "";
+    if (!studentName || studentName.length > 100) {
+      throw new ServiceError(
+        "Nome do aluno inválido",
+        ServiceErrorType.BadRequest,
+        undefined,
+        ErrorCode.RESPONSE_INVALID_PAYLOAD,
+      );
+    }
+
+    const experiment = await this.findExperimentByPinAndType(pin);
     this.assertAcceptingResponses(experiment);
 
     const { answers, ...rest } = input;
     const scored = this.buildScoredAnswers(answers);
-    const toSave: GlycemicControlResponseTypes = { ...rest, ...scored };
+    const toSave: GlycemicControlResponseTypes = { ...rest, studentName, pin, ...scored };
 
     const createdResponse =
       await this.glycemicControlResponseRepository.create(toSave);
 
-    const chart = await this.getGlycemicControlChartByPin(input.pin);
+    const analytics = await this.getGlycemicControlChartByPin(pin);
 
     emitChartUpdate(
       "glycemic-control",
       experiment._id.toString(),
-      chart,
+      analytics.chart,
+      analytics.kpis,
     );
 
     return createdResponse;
@@ -138,7 +150,7 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
     return this.glycemicControlResponseRepository.delete(id);
   }
 
-  async getGlycemicControlChartByPin(pin: string): Promise<GlycemicControlChartDataTypes[]> {
+  async getGlycemicControlChartByPin(pin: string): Promise<GlycemicControlAnalyticsResponse> {
     await this.findExperimentByPinAndType(pin);
 
     const responses = await this.glycemicControlResponseRepository.findByPin(pin);
@@ -164,12 +176,24 @@ export class GlycemicControlResponseService implements GlycemicControlResponseSe
       }
     }
 
-    return [
+    const chart = [
       { students: questionCounts[1], question: 1 },
       { students: questionCounts[2], question: 2 },
       { students: questionCounts[3], question: 3 },
       { students: questionCounts[4], question: 4 },
       { students: questionCounts[5], question: 5 },
     ];
+
+    const totalResponses = responseList.length;
+    const averageScore = totalResponses > 0
+      ? responseList.reduce((sum, r) => sum + r.score, 0) / totalResponses
+      : 0;
+
+    const kpis: GlycemicControlKPIs = {
+      totalResponses,
+      averageScore: Math.round(averageScore),
+    };
+
+    return { chart, kpis };
   }
 }

@@ -1,7 +1,7 @@
 import { inject, injectable } from "tsyringe";
 import { TeacherServiceTypes } from "../types/teacher.services.types";
 import { TeacherRepositoryTypes } from "../types/teacher.repositories.types";
-import { TeacherTypes } from "../types/teacher.schemas.types";
+import { TeacherTypes, UpdateTeacherTypes } from "../types/teacher.schemas.types";
 import ServiceError, {
   ServiceErrorType,
 } from "../../../shared/errors/ServiceError";
@@ -69,7 +69,7 @@ export class TeacherService implements TeacherServiceTypes {
       );
     return this.sanitizeTeacher(teacher);
   }
-  async updateTeacher(id: string, teacher: TeacherTypes) {
+  async updateTeacher(id: string, teacher: UpdateTeacherTypes) {
     const existing = await this.teacherRepository.findById(id);
     if (!existing)
       throw new ServiceError(

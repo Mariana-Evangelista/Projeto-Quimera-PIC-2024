@@ -204,6 +204,6 @@ export class ExperimentController {
       );
 
     await this.experimentService.deleteExperiment(id, requesterId);
-    res.status(200).send();
+    res.status(204).send();
   });
 }

@@ -25,3 +25,13 @@ export interface BodyWaterLossChartDataTypes {
   score: BodyWaterLossChartScore;
   label: string;
 }
+
+export interface BodyWaterLossKPIs {
+  totalResponses: number;
+  averageScore: number;
+}
+
+export interface BodyWaterLossAnalyticsResponse {
+  chart: BodyWaterLossChartDataTypes[];
+  kpis: BodyWaterLossKPIs;
+}
