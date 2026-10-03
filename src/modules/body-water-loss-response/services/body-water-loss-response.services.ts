@@ -2,7 +2,7 @@ import { inject, injectable } from "tsyringe";
 import { isValidObjectId } from "mongoose";
 import { BodyWaterLossResponseServiceTypes } from "../types/body-water-loss-response.services.types";
 import { BodyWaterLossResponseRepositoryTypes } from "../types/body-water-loss-response.repositories.types";
-import { BodyWaterLossResponseTypes, BodyWaterLossResponseInput, BodyWaterLossChartDataTypes, BodyWaterLossChartScore } from "../types/body-water-loss-response.schemas.types";
+import { BodyWaterLossResponseTypes, BodyWaterLossResponseInput, BodyWaterLossChartDataTypes, BodyWaterLossChartScore, BodyWaterLossAnalyticsResponse, BodyWaterLossKPIs } from "../types/body-water-loss-response.schemas.types";
 import ServiceError, {
   ServiceErrorType,
 } from "../../../shared/errors/ServiceError";
@@ -125,12 +125,13 @@ export class BodyWaterLossResponseService implements BodyWaterLossResponseServic
     const createdResponse =
       await this.bodyWaterLossResponseRepository.create(toSave);
 
-    const chart = await this.getBodyWaterLossChartByPin(pin);
+    const analytics = await this.getBodyWaterLossChartByPin(pin);
 
     emitChartUpdate(
       "body-water-loss",
       experiment._id.toString(),
-      chart,
+      analytics.chart,
+      analytics.kpis,
     );
 
     return createdResponse;
@@ -147,7 +148,7 @@ export class BodyWaterLossResponseService implements BodyWaterLossResponseServic
     return this.bodyWaterLossResponseRepository.delete(id);
   }
 
-  async getBodyWaterLossChartByPin(pin: string): Promise<BodyWaterLossChartDataTypes[]> {
+  async getBodyWaterLossChartByPin(pin: string): Promise<BodyWaterLossAnalyticsResponse> {
     await this.findExperimentByPinAndType(pin);
 
     const responses = await this.bodyWaterLossResponseRepository.findByPin(pin);
@@ -167,11 +168,23 @@ export class BodyWaterLossResponseService implements BodyWaterLossResponseServic
       }
     }
 
-    return [
-      { students: scoreBuckets[0].students, score: 0, label: scoreBuckets[0].label },
-      { students: scoreBuckets[20].students, score: 20, label: scoreBuckets[20].label },
-      { students: scoreBuckets[80].students, score: 80, label: scoreBuckets[80].label },
-      { students: scoreBuckets[100].students, score: 100, label: scoreBuckets[100].label },
+    const chart: BodyWaterLossChartDataTypes[] = [
+      { students: scoreBuckets[0].students, score: 0 as BodyWaterLossChartScore, label: scoreBuckets[0].label },
+      { students: scoreBuckets[20].students, score: 20 as BodyWaterLossChartScore, label: scoreBuckets[20].label },
+      { students: scoreBuckets[80].students, score: 80 as BodyWaterLossChartScore, label: scoreBuckets[80].label },
+      { students: scoreBuckets[100].students, score: 100 as BodyWaterLossChartScore, label: scoreBuckets[100].label },
     ];
+
+    const totalResponses = responseList.length;
+    const averageScore = totalResponses > 0
+      ? responseList.reduce((sum, r) => sum + r.score, 0) / totalResponses
+      : 0;
+
+    const kpis: BodyWaterLossKPIs = {
+      totalResponses,
+      averageScore: Math.round(averageScore),
+    };
+
+    return { chart, kpis };
   }
 }

@@ -115,10 +115,11 @@ export function registerChartNamespace(
   return nsp;
 }
 
-export function emitChartUpdate<TChart>(
+export function emitChartUpdate<TChart, TKPIs>(
   experimentType: ChartExperimentType,
   experimentId: string,
   chart: TChart[],
+  kpis: TKPIs,
 ): void {
   const namespace = chartNamespaces.get(experimentType);
 
@@ -130,9 +131,10 @@ export function emitChartUpdate<TChart>(
   }
 
   try {
-    const payload: ExperimentChartUpdatedPayload<TChart> = {
+    const payload: ExperimentChartUpdatedPayload<TChart, TKPIs> = {
       experimentId,
       chart,
+      kpis,
     };
 
     const room = getExperimentRoom(experimentId);
