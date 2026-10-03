@@ -147,7 +147,7 @@ describe("Glycemic Control — buildScoredAnswers", () => {
   it("rejeita duplicata", () => {
     const withDup = [
       { question: 1, answer: "b" },
-      { question: 1, answer: "b" }, // duplicate question 1
+      { question: 1, answer: "b" },
       { question: 3, answer: "c" },
       { question: 4, answer: "c" },
       { question: 5, answer: "a" },

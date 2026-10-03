@@ -21,3 +21,13 @@ export interface GlycemicControlChartDataTypes {
   students: number;
   question: number;
 }
+
+export interface GlycemicControlKPIs {
+  totalResponses: number;
+  averageScore: number;
+}
+
+export interface GlycemicControlAnalyticsResponse {
+  chart: GlycemicControlChartDataTypes[];
+  kpis: GlycemicControlKPIs;
+}

@@ -39,9 +39,10 @@ export interface ChartJoinPayload {
   pin: string;
 }
 
-export interface ExperimentChartUpdatedPayload<TChart = unknown> {
+export interface ExperimentChartUpdatedPayload<TChart = unknown, TKPIs = unknown> {
   experimentId: string;
   chart: TChart[];
+  kpis: TKPIs;
 }
 
 export const CHART_SOCKET_EVENTS = {
