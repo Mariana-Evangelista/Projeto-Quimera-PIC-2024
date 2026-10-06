@@ -36,6 +36,13 @@ app.use(cors({ origin: corsOrigin, credentials: true }));
 //middleware
 app.use(express.json({ limit: "10kb" }));
 
+// health check
+app.get('/health', async (_req, res) => {
+  const mongoose = (await import('mongoose')).default;
+  const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  res.json({ status: 'ok', mongo: mongoStatus });
+});
+
 //rotas
 
 app.use("/teacher", TeacherRoutes());
