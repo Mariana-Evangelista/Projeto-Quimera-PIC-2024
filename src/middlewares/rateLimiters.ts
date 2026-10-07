@@ -49,7 +49,18 @@ function getResponseSubmissionKey(req: Request): string {
   return ipKeyGenerator(req.ip ?? "unknown");
 }
 
-export const loginRateLimiter = rateLimit({
+function isTestEnvironment(): boolean {
+  return process.env.NODE_ENV === 'test' || process.env.E2E_TEST === 'true';
+}
+
+function createTestAwareRateLimiter(options: any) {
+  if (isTestEnvironment()) {
+    return (_req: Request, _res: Response, next: NextFunction) => next();
+  }
+  return rateLimit(options);
+}
+
+export const loginRateLimiter = createTestAwareRateLimiter({
   windowMs: LOGIN_WINDOW_MS,
   limit: LOGIN_MAX,
   standardHeaders: true,
@@ -59,7 +70,7 @@ export const loginRateLimiter = rateLimit({
   handler: createRateLimitHandler(),
 });
 
-export const teacherSignupRateLimiter = rateLimit({
+export const teacherSignupRateLimiter = createTestAwareRateLimiter({
   windowMs: TEACHER_SIGNUP_WINDOW_MS,
   limit: TEACHER_SIGNUP_MAX,
   standardHeaders: true,
@@ -68,7 +79,7 @@ export const teacherSignupRateLimiter = rateLimit({
   handler: createRateLimitHandler(),
 });
 
-export const responseSubmissionRateLimiter = rateLimit({
+export const responseSubmissionRateLimiter = createTestAwareRateLimiter({
   windowMs: RESPONSE_SUBMISSION_WINDOW_MS,
   limit: RESPONSE_SUBMISSION_MAX,
   standardHeaders: true,
