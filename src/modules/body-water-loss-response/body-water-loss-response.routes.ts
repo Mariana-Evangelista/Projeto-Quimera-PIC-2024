@@ -2,7 +2,7 @@ import { Router } from "express";
 import { container } from "tsyringe";
 import { BodyWaterLossResponseController } from "./controllers/body-water-loss-response.controllers";
 import { authMiddleware } from "../../middlewares/authMiddleware";
-import { responseSubmissionRateLimiter } from "../../middlewares/rateLimiters";
+import { responseSubmissionRateLimiter, publicPinLookupRateLimiter } from "../../middlewares/rateLimiters";
 
 export function BodyWaterLossResponseRoutes() {
   const router = Router();
@@ -13,6 +13,7 @@ export function BodyWaterLossResponseRoutes() {
 
   router.get(
     "/analytics/:pin",
+    publicPinLookupRateLimiter,
     controller.getBodyWaterLossAnalyticsByPin.bind(controller),
   );
 

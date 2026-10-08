@@ -2,6 +2,7 @@ import { Router } from "express";
 import { container } from "tsyringe";
 import { ExperimentController } from "./controllers/experiment.controllers";
 import { authMiddleware } from "../../middlewares/authMiddleware";
+import { publicPinLookupRateLimiter } from "../../middlewares/rateLimiters";
 
 export function ExperimentRoutes() {
   const router = Router();
@@ -25,6 +26,7 @@ export function ExperimentRoutes() {
   );
   router.get(
     "/participant/pin/:pin/:slug",
+    publicPinLookupRateLimiter,
     experimentController.getExperimentByPinForParticipant.bind(experimentController),
   );
 

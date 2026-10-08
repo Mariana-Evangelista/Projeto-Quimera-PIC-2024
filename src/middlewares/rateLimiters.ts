@@ -88,4 +88,17 @@ export const responseSubmissionRateLimiter = createTestAwareRateLimiter({
   handler: createRateLimitHandler(),
 });
 
-export { LOGIN_WINDOW_MS, LOGIN_MAX, TEACHER_SIGNUP_WINDOW_MS, TEACHER_SIGNUP_MAX, RESPONSE_SUBMISSION_WINDOW_MS, RESPONSE_SUBMISSION_MAX, getLoginKey, getResponseSubmissionKey };
+const PUBLIC_LOOKUP_WINDOW_MS = 15 * 60 * 1000;
+const PUBLIC_LOOKUP_MAX_FAILURES = 30;
+
+export const publicPinLookupRateLimiter = createTestAwareRateLimiter({
+  windowMs: PUBLIC_LOOKUP_WINDOW_MS,
+  limit: PUBLIC_LOOKUP_MAX_FAILURES,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  keyGenerator: (req: Request) => ipKeyGenerator(req.ip ?? "unknown"),
+  handler: createRateLimitHandler(),
+});
+
+export { LOGIN_WINDOW_MS, LOGIN_MAX, TEACHER_SIGNUP_WINDOW_MS, TEACHER_SIGNUP_MAX, RESPONSE_SUBMISSION_WINDOW_MS, RESPONSE_SUBMISSION_MAX, PUBLIC_LOOKUP_WINDOW_MS, PUBLIC_LOOKUP_MAX_FAILURES, getLoginKey, getResponseSubmissionKey };
