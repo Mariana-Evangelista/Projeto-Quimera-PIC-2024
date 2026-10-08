@@ -4,6 +4,7 @@ import "./containers";
 import { createServer } from "node:http";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import connectMongoDB from "./database/mongoDb";
 
 import { AuthRoutes } from "./modules/auth/auth.routes";
@@ -28,6 +29,8 @@ if (envErrors.length > 0) {
 }
 
 const app = express();
+app.set("trust proxy", 1);
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 const port = process.env.PORT || 8000;
 
 const corsOrigin = process.env.CORS_ORIGIN!;
@@ -39,8 +42,8 @@ app.use(express.json({ limit: "10kb" }));
 // health check
 app.get('/health', async (_req, res) => {
   const mongoose = (await import('mongoose')).default;
-  const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
-  res.json({ status: 'ok', mongo: mongoStatus });
+  const connected = mongoose.connection.readyState === 1;
+  res.status(connected ? 200 : 503).json({ status: connected ? 'ok' : 'degraded', mongo: connected ? 'connected' : 'disconnected' });
 });
 
 //rotas
