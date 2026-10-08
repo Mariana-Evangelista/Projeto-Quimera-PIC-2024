@@ -1,123 +1,119 @@
 # Quimera Backend
 
-> Backend de uma plataforma de aprendizagem ativa para aulas de Fisiologia Animal, com participação anônima por PIN, correção server-side e indicadores atualizados em tempo real.
+> Backend for an active learning platform for Animal Physiology classes, featuring anonymous PIN-based participation, server-side grading, and real-time updated indicators.
 
 [![CI](https://github.com/Mariana-Evangelista/Projeto-Quimera-PIC-2024/actions/workflows/ci.yml/badge.svg)](https://github.com/Mariana-Evangelista/Projeto-Quimera-PIC-2024/actions/workflows/ci.yml)
 ![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=node.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-54%20passing-4CAF50)
 
-> **Projeto desenvolvido para o PIC 2024 do Centro Universitário Barão de Mauá, em parceria com o curso de Medicina Veterinária.**
+> **Project developed for PIC 2024 at Centro Universitário Barão de Mauá, in partnership with the Veterinary Medicine program.**
 
-## Conteúdo
+## Contents
 
-- [Visão geral](#vis%C3%A3o-geral)
+- [Overview](#overview)
 
-- [Demonstração](#demonstra%C3%A7%C3%A3o)
+- [Demo](#demo)
 
-- [Fluxo do produto](#fluxo-do-produto)
+- [Product flow](#product-flow)
 
-- [Principais decisões técnicas](#principais-decis%C3%B5es-t%C3%A9cnicas)
+- [Key technical decisions](#key-technical-decisions)
 
-- [Arquitetura](#arquitetura)
+- [Architecture](#architecture)
 
 - [Stack](#stack)
 
-- [API e tempo real](#api-e-tempo-real)
+- [API and real time](#api-and-real-time)
 
-- [Segurança e privacidade](#seguran%C3%A7a-e-privacidade)
+- [Security and privacy](#security-and-privacy)
 
-- [Execução local](#execu%C3%A7%C3%A3o-local)
+- [Local setup](#local-setup)
 
-- [Testes e qualidade](#testes-e-qualidade)
+- [Testing and quality](#testing-and-quality)
 
-- [Deploy e operação](#deploy-e-opera%C3%A7%C3%A3o)
+- [Deployment and operations](#deployment-and-operations)
 
-- [Roadmap](#roadmap)
+## Overview
 
-- [Licença](#licen%C3%A7a)
+Quimera was created to make learning **Animal Physiology** more dynamic and participatory. The professor runs an experiment in the classroom while students answer anonymously using a public PIN, with no account creation and no exposure of their student ID (RA).
 
-## Visão geral
+The backend is responsible for:
 
-O Quimera foi criado para tornar o aprendizado de **Fisiologia Animal** mais dinâmico e participativo. O professor conduz um experimento em sala, enquanto os alunos respondem anonimamente usando um PIN público, sem criação de conta ou exposição de RA.
+- authenticating professors;
 
-O backend é responsável por:
+- creating and managing experiments;
 
-- autenticar professores;
+- validating experiment state;
 
-- criar e controlar experimentos;
+- receiving and grading answers on the server;
 
-- validar o estado do experimento;
+- calculating scores, averages, and distributions;
 
-- receber e corrigir respostas no servidor;
+- updating connected clients via Socket.IO;
 
-- calcular pontuações, médias e distribuições;
+- protecting public endpoints and administrative operations.
 
-- atualizar clientes conectados via Socket.IO;
+### Available experiments
 
-- proteger endpoints públicos e operações administrativas.
+- **Body water loss** — `body-water-loss`
 
-### Experimentos disponíveis
+- **Glycemic control** — `glycemic-control`
 
-- **Perda de água corporal** — `body-water-loss`
+## Demo
 
-- **Controle glicêmico** — `glycemic-control`
+- **Postman documentation:** [view documentation](https://documenter.getpostman.com/view/34198309/2sBYAysUSD)
 
-## Demonstração
+- **Frontend:** [open frontend](https://quimera.mevangelista.com)
 
-- **Documentação Postman:** [acessar documentação](https://documenter.getpostman.com/view/34198309/2sBYAysUSD)
-
-- **Frontend:** [acessar frontend](https://quimera.mevangelista.com)
-
-## Fluxo do produto
+## Product flow
 
 ```mermaid
 sequenceDiagram
     actor Professor
-    actor Aluno
-    participant API as API Quimera
+    actor Student
+    participant API as Quimera API
     participant DB as MongoDB
     participant RT as Socket.IO
 
     Professor->>API: Login
     API-->>Professor: JWT
-    Professor->>API: Cria experimento
-    API->>DB: Persiste experimento e PIN
-    API-->>Professor: PIN público
-    Aluno->>API: Consulta experimento usando PIN
-    Aluno->>API: Envia resposta anônima
-    API->>DB: Valida, corrige e persiste resposta
-    API->>RT: Publica atualização de analytics
-    RT-->>Professor: Atualiza gráfico em tempo real
+    Professor->>API: Creates experiment
+    API->>DB: Persists experiment and PIN
+    API-->>Professor: Public PIN
+    Student->>API: Looks up experiment using PIN
+    Student->>API: Submits anonymous answer
+    API->>DB: Validates, grades, and persists answer
+    API->>RT: Publishes analytics update
+    RT-->>Professor: Updates chart in real time
 ```
 
-### Estados do experimento
+### Experiment states
 
-| Estado | Comportamento |
+| State | Behavior |
 | --- | --- |
-| `Não iniciado` | Respostas ainda não são aceitas |
-| `Em Progresso` | Alunos podem enviar respostas |
-| `Finalizado` | Novas respostas são bloqueadas e os resultados podem ser apresentados |
+| `Não iniciado` (Not started) | Answers are not yet accepted |
+| `Em Progresso` (In progress) | Students can submit answers |
+| `Finalizado` (Finished) | New answers are blocked and results can be presented |
 
-## Principais decisões técnicas
+## Key technical decisions
 
-### Correção no backend
+### Server-side grading
 
-O cliente envia apenas as respostas. O servidor aplica o gabarito e calcula os pesos, evitando confiar em pontuação enviada pelo navegador.
+The client sends only the answers. The server applies the answer key and calculates the weights, avoiding any reliance on a score sent by the browser.
 
-### Participação anônima por PIN
+### Anonymous participation via PIN
 
-Os alunos não precisam criar conta. O professor continua protegido por JWT, enquanto a API valida PIN, tipo de experimento e estado antes de aceitar uma resposta.
+Students don't need to create an account. The professor remains protected by JWT, while the API validates the PIN, experiment type, and state before accepting an answer.
 
-### Atualização em tempo real
+### Real-time updates
 
-O Socket.IO organiza os clientes em salas por experimento. Uma nova resposta ou alteração de estado pode atualizar os dados exibidos sem recarregar a página.
+Socket.IO organizes clients into per-experiment rooms. A new answer or a state change can update the displayed data without reloading the page.
 
-### Separação por domínio
+### Domain separation
 
-Controllers, services, repositories, schemas e tipos ficam organizados por módulo de negócio. O TSyringe fornece injeção de dependências e reduz o acoplamento entre as camadas.
+Controllers, services, repositories, schemas, and types are organized by business module. TSyringe provides dependency injection and reduces coupling between layers.
 
-## Arquitetura
+## Architecture
 
 ```
 src/
@@ -134,50 +130,50 @@ src/
 └── shared/
 ```
 
-### Responsabilidades
+### Responsibilities
 
-| Camada | Responsabilidade |
+| Layer | Responsibility |
 | --- | --- |
-| Routes | Define endpoints e middlewares |
-| Controllers | Traduz HTTP para chamadas de aplicação |
-| Services | Implementa regras de negócio |
-| Repositories | Encapsula persistência no MongoDB |
-| Schemas | Define modelos e validações do Mongoose |
-| Sockets | Gerencia namespaces, salas e eventos em tempo real |
-| Middlewares | Autenticação, segurança, rate limiting e erros |
+| Routes | Defines endpoints and middlewares |
+| Controllers | Translates HTTP into application calls |
+| Services | Implements business rules |
+| Repositories | Encapsulates MongoDB persistence |
+| Schemas | Defines Mongoose models and validations |
+| Sockets | Manages namespaces, rooms, and real-time events |
+| Middlewares | Authentication, security, rate limiting, and error handling |
 
 ## Stack
 
-| Categoria | Tecnologias |
+| Category | Technologies |
 | --- | --- |
-| Linguagem | TypeScript |
+| Language | TypeScript |
 | Runtime | Node.js 20 |
 | API | Express |
-| Banco | MongoDB 7 + Mongoose |
-| Tempo real | Socket.IO |
-| Autenticação | JWT + bcryptjs |
-| Segurança | Helmet, CORS e express-rate-limit |
+| Database | MongoDB 7 + Mongoose |
+| Real time | Socket.IO |
+| Authentication | JWT + bcryptjs |
+| Security | Helmet, CORS, and express-rate-limit |
 | DI | TSyringe |
-| Testes | Vitest |
-| Infraestrutura | Docker + Docker Compose |
+| Testing | Vitest |
+| Infrastructure | Docker + Docker Compose |
 | CI/CD | GitHub Actions + GitHub Container Registry |
-| Deploy | AWS EC2 + AWS Systems Manager + Caddy |
+| Deployment | AWS EC2 + AWS Systems Manager + Caddy |
 
-## API e tempo real
+## API and real time
 
-### Principais grupos de endpoints
+### Main endpoint groups
 
-| Grupo | Acesso | Responsabilidade |
+| Group | Access | Responsibility |
 | --- | --- | --- |
-| `/auth` | Professor | Login e emissão de JWT |
-| `/teacher` | Público/autenticado | Cadastro e gerenciamento do professor |
-| `/experiment` | Misto | Criação, consulta, atualização e remoção de experimentos |
-| `/body-water-loss-response` | Misto | Respostas e analytics de perda de água corporal |
-| `/glycemic-control-response` | Misto | Respostas e analytics de controle glicêmico |
-| `/health` | Público | Saúde da API e conexão com MongoDB |
+| `/auth` | Professor | Login and JWT issuance |
+| `/teacher` | Public/authenticated | Professor registration and management |
+| `/experiment` | Mixed | Creating, querying, updating, and deleting experiments |
+| `/body-water-loss-response` | Mixed | Answers and analytics for body water loss |
+| `/glycemic-control-response` | Mixed | Answers and analytics for glycemic control |
+| `/health` | Public | API health and MongoDB connection status |
 
 
-### Namespaces Socket.IO
+### Socket.IO namespaces
 
 - `/experiments`
 
@@ -185,43 +181,43 @@ src/
 
 - `/glycemic-control-chart`
 
-O cliente entra em uma sala a partir do PIN. O servidor valida o PIN e o tipo do experimento, limita tentativas consecutivas e emite atualizações para os participantes da sala.
+The client joins a room based on the PIN. The server validates the PIN and experiment type, limits consecutive attempts, and emits updates to the room's participants.
 
-## Segurança e privacidade
+## Security and privacy
 
-- Senhas armazenadas com hash bcrypt.
+- Passwords stored with bcrypt hashing.
 
-- JWT verificado com algoritmo configurado.
+- JWT verified with a configured algorithm.
 
-- Helmet para headers de segurança.
+- Helmet for security headers.
 
-- CORS configurável por ambiente.
+- CORS configurable per environment.
 
-- Rate limiting para login, cadastro, consultas públicas, envio de respostas e entrada em salas.
+- Rate limiting for login, registration, public queries, answer submission, and room joining.
 
-- Validação de tipos, tamanhos, duplicidades e campos permitidos.
+- Validation of types, sizes, duplicates, and allowed fields.
 
-- Peso da pontuação definido exclusivamente no servidor.
+- Score weights defined exclusively on the server.
 
-- MongoDB isolado em rede interna no Compose de produção.
+- MongoDB isolated on an internal network in the production Compose setup.
 
-- Container da API executado com usuário não-root.
+- API container runs as a non-root user.
 
-- Alunos participam sem conta, reduzindo coleta de dados pessoais.
+- Students participate without an account, reducing personal data collection.
 
 
 
-## Execução local
+## Local setup
 
-### Pré-requisitos
+### Prerequisites
 
 - Node.js 20+
 
 - npm
 
-- Docker e Docker Compose
+- Docker and Docker Compose
 
-### Instalação
+### Installation
 
 ```bash
 git clone https://github.com/Mariana-Evangelista/Projeto-Quimera-PIC-2024.git
@@ -230,79 +226,79 @@ npm ci
 cp .env.example .env
 ```
 
-Configure o `.env`:
+Configure the `.env` file:
 
 ```
 PORT=8000
 MONGO_URL=mongodb://user:pass@host:27017/db?authSource=admin
-JWT_SECRET=gere_uma_chave_com_no_minimo_32_caracteres
+JWT_SECRET=generate_a_key_with_at_least_32_characters
 CORS_ORIGIN=http://localhost:3000
 ```
 
-Suba o MongoDB:
+Start MongoDB:
 
 ```bash
 docker compose up -d mongodb
 ```
 
-Inicie a API em desenvolvimento:
+Start the API in development mode:
 
 ```bash
 npm run dev
 ```
 
-A API ficará disponível em `http://localhost:8000`.
+The API will be available at `http://localhost:8000`.
 
-### Build de produção local
+### Local production build
 
 ```bash
 npm run build
 npm start
 ```
 
-## Testes e qualidade
+## Testing and quality
 
 ```bash
 npm test
 npm run build
 ```
 
-Estado atual validado localmente:
+Current state, validated locally:
 
-- **54 testes aprovados**;
+- **54 tests passing**;
 
-- **5 arquivos de teste**;
+- **5 test files**;
 
-- **build TypeScript concluído**;
+- **TypeScript build completed**;
 
-- pipeline executa testes e build em pull requests e pushes para `main`.
-
-
-## Deploy e operação
-
-O pipeline de produção:
-
-1. executa testes e build;
-
-1. constrói imagem Docker multi-stage;
-
-1. publica a imagem no GHCR;
-
-1. autentica na AWS via OIDC;
-
-1. executa o deploy na EC2 via Systems Manager;
-
-1. aguarda o healthcheck da API;
-
-1. considera o deploy concluído somente após a aplicação ficar saudável.
-
-Em produção, os serviços são separados em API, MongoDB e Caddy. O Caddy fornece HTTPS e o MongoDB não fica exposto diretamente à rede pública.
-
-Também existe um script de backup do MongoDB com retenção de arquivos antigos.
+- the pipeline runs tests and build on pull requests and pushes to `main`.
 
 
+## Deployment and operations
 
-## Autora
+The production pipeline:
+
+1. runs tests and build;
+
+1. builds a multi-stage Docker image;
+
+1. publishes the image to GHCR;
+
+1. authenticates with AWS via OIDC;
+
+1. deploys to EC2 via Systems Manager;
+
+1. waits for the API healthcheck;
+
+1. considers the deployment complete only after the application is healthy.
+
+In production, services are split into API, MongoDB, and Caddy. Caddy provides HTTPS, and MongoDB is not directly exposed to the public network.
+
+There is also a MongoDB backup script that retains older backup files.
+
+
+
+## Author
 
 **Mariana Evangelista**
 [GitHub](https://github.com/Mariana-Evangelista)
