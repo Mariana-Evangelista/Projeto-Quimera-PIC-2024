@@ -69,22 +69,22 @@ The backend is responsible for:
 
 ```mermaid
 sequenceDiagram
-    actor Professor
+    actor Teacher
     actor Student
     participant API as Quimera API
     participant DB as MongoDB
     participant RT as Socket.IO
 
     Professor->>API: Login
-    API-->>Professor: JWT
+    API-->>Teacher: JWT
     Professor->>API: Creates experiment
     API->>DB: Persists experiment and PIN
-    API-->>Professor: Public PIN
+    API-->>Teacher: Public PIN
     Student->>API: Looks up experiment using PIN
     Student->>API: Submits anonymous answer
     API->>DB: Validates, grades, and persists answer
     API->>RT: Publishes analytics update
-    RT-->>Professor: Updates chart in real time
+    RT-->>Teacher: Updates chart in real time
 ```
 
 ### Experiment states
